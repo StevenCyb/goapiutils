@@ -16,7 +16,7 @@ RSQL supports the following value comparison operators for `"string"`, `number` 
 | =sw=     | starts with       |
 | =wd=     | ends with         |
 
-In addition it supports the following array comparison operators:
+In addition it supports the following array comparison operators (used like `log_level=in=("error","warning")`):
 | Operator | Description        |
 |----------|--------------------|
 | =in=           | contains     |
