@@ -90,7 +90,7 @@ func FindCompare(t *testing.T, collection *mongo.Collection, filter interface{},
 	}
 
 	ctx := context.TODO()
-	cur, err := collection.Find(ctx, bson.D{}, opts)
+	cur, err := collection.Find(ctx, filter, opts)
 	require.NoError(t, err)
 	defer cur.Close(ctx)
 

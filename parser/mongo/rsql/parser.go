@@ -152,18 +152,18 @@ func (p *Parser) expression() ([]bson.E, error) {
 		if logicalOperation.Type == TYPE_AND_COMPOSITE {
 			if right[0].Key == "$and" {
 				newA := right[0].Value.(bson.A)
-				newA = append(bson.A{left}, newA...)
+				newA = append(bson.A{bson.D{left}}, newA...)
 				left = bson.E{Key: "$and", Value: newA}
 			} else {
-				left = bson.E{Key: "$and", Value: bson.A{left, right[0]}}
+				left = bson.E{Key: "$and", Value: bson.A{bson.D{left}, bson.D{right[0]}}}
 			}
 		} else {
 			if right[0].Key == "$or" {
 				newA := right[0].Value.(bson.A)
-				newA = append(bson.A{left}, newA...)
+				newA = append(bson.A{bson.D{left}}, newA...)
 				left = bson.E{Key: "$or", Value: newA}
 			} else {
-				left = bson.E{Key: "$or", Value: bson.A{left, right[0]}}
+				left = bson.E{Key: "$or", Value: bson.A{bson.D{left}, bson.D{right[0]}}}
 			}
 		}
 		if err != nil {
@@ -244,7 +244,7 @@ func (p *Parser) comparison() (*bson.E, error) {
 		case "==":
 			return &bson.E{Key: key, Value: literal}, nil
 		case "!=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$ne", Value: literal}}, nil
+			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$ne", Value: literal}}}, nil
 		case "=sw=":
 			wildcard, err := regexp.Compile("^" + fmt.Sprintf("%v", literal))
 			return &bson.E{Key: key, Value: *wildcard}, err
@@ -252,13 +252,13 @@ func (p *Parser) comparison() (*bson.E, error) {
 			wildcard, err := regexp.Compile(fmt.Sprintf("%v", literal) + "$")
 			return &bson.E{Key: key, Value: *wildcard}, err
 		case "=gt=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$gt", Value: literal}}, nil
+			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gt", Value: literal}}}, nil
 		case "=ge=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$gte", Value: literal}}, nil
+			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gte", Value: literal}}}, nil
 		case "=lt=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$lt", Value: literal}}, nil
+			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lt", Value: literal}}}, nil
 		case "=le=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$lte", Value: literal}}, nil
+			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lte", Value: literal}}}, nil
 		default:
 			return nil, errs.NewErrUnexpectedTokenType(
 				p.tokenizer.GetCursorPostion()-len(operator.Value),

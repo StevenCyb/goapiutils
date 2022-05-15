@@ -2,12 +2,14 @@ package rsql
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"testing"
 
 	"github.com/StevenCyb/goquery/errs"
 	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
 	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/stretchr/testify/require"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -84,8 +86,9 @@ func TestParsing(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
 					`x!=10`,
-					bson.D{bson.E{Key: "x",
-						Value: bson.E{Key: "$ne", Value: int64(10)}}},
+					bson.D{
+						bson.E{Key: "x", Value: bson.D{
+							bson.E{Key: "$ne", Value: int64(10)}}}},
 				)
 			})
 
@@ -109,8 +112,9 @@ func TestParsing(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
 					`x=gt=10`,
-					bson.D{bson.E{Key: "x",
-						Value: bson.E{Key: "$gt", Value: int64(10)}}},
+					bson.D{
+						bson.E{Key: "x", Value: bson.D{
+							bson.E{Key: "$gt", Value: int64(10)}}}},
 				)
 			})
 
@@ -118,8 +122,9 @@ func TestParsing(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
 					`x=ge=10`,
-					bson.D{bson.E{Key: "x",
-						Value: bson.E{Key: "$gte", Value: int64(10)}}},
+					bson.D{
+						bson.E{Key: "x", Value: bson.D{
+							bson.E{Key: "$gte", Value: int64(10)}}}},
 				)
 			})
 
@@ -127,8 +132,9 @@ func TestParsing(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
 					`x=lt=10`,
-					bson.D{bson.E{Key: "x",
-						Value: bson.E{Key: "$lt", Value: int64(10)}}},
+					bson.D{
+						bson.E{Key: "x", Value: bson.D{
+							bson.E{Key: "$lt", Value: int64(10)}}}},
 				)
 			})
 
@@ -136,8 +142,9 @@ func TestParsing(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
 					`x=le=10`,
-					bson.D{bson.E{Key: "x",
-						Value: bson.E{Key: "$lte", Value: int64(10)}}},
+					bson.D{
+						bson.E{Key: "x", Value: bson.D{
+							bson.E{Key: "$lte", Value: int64(10)}}}},
 				)
 			})
 
@@ -168,12 +175,12 @@ func TestParsing(t *testing.T) {
 					NewParser(nil),
 					`firstName=="steven";age=ge=18`,
 					bson.D{
-						bson.E{
-							Key: "$and", Value: bson.A{
-								bson.E{Key: "firstName", Value: "steven"},
-								bson.E{Key: "age",
-									Value: bson.E{Key: "$gte", Value: int64(18)}},
-							}}},
+						bson.E{Key: "$and", Value: bson.A{
+							bson.D{
+								bson.E{Key: "firstName", Value: "steven"}},
+							bson.D{
+								bson.E{Key: "age", Value: bson.D{
+									bson.E{Key: "$gte", Value: int64(18)}}}}}}},
 				)
 			})
 
@@ -182,11 +189,11 @@ func TestParsing(t *testing.T) {
 					NewParser(nil),
 					`level=="error",level=="warning"`,
 					bson.D{
-						bson.E{
-							Key: "$or", Value: bson.A{
-								bson.E{Key: "level", Value: "error"},
-								bson.E{Key: "level", Value: "warning"},
-							}}},
+						bson.E{Key: "$or", Value: bson.A{
+							bson.D{
+								bson.E{Key: "level", Value: "error"}},
+							bson.D{
+								bson.E{Key: "level", Value: "warning"}}}}},
 				)
 			})
 
@@ -195,13 +202,14 @@ func TestParsing(t *testing.T) {
 					NewParser(nil),
 					`firstName=="steven";age=ge=18;gender=="male"`,
 					bson.D{
-						bson.E{
-							Key: "$and", Value: bson.A{
-								bson.E{Key: "firstName", Value: "steven"},
-								bson.E{Key: "age",
-									Value: bson.E{Key: "$gte", Value: int64(18)}},
-								bson.E{Key: "gender", Value: "male"},
-							}}},
+						bson.E{Key: "$and", Value: bson.A{
+							bson.D{
+								bson.E{Key: "firstName", Value: "steven"}},
+							bson.D{
+								bson.E{Key: "age", Value: bson.D{
+									bson.E{Key: "$gte", Value: int64(18)}}}},
+							bson.D{
+								bson.E{Key: "gender", Value: "male"}}}}},
 				)
 			})
 
@@ -210,12 +218,13 @@ func TestParsing(t *testing.T) {
 					NewParser(nil),
 					`level=="panic",level=="error",level=="warning"`,
 					bson.D{
-						bson.E{
-							Key: "$or", Value: bson.A{
-								bson.E{Key: "level", Value: "panic"},
-								bson.E{Key: "level", Value: "error"},
-								bson.E{Key: "level", Value: "warning"},
-							}}},
+						bson.E{Key: "$or", Value: bson.A{
+							bson.D{
+								bson.E{Key: "level", Value: "panic"}},
+							bson.D{
+								bson.E{Key: "level", Value: "error"}},
+							bson.D{
+								bson.E{Key: "level", Value: "warning"}}}}},
 				)
 			})
 
@@ -225,12 +234,18 @@ func TestParsing(t *testing.T) {
 					`a==1,a==2,a==3,b==1;c==1`,
 					bson.D{
 						bson.E{Key: "$or", Value: bson.A{
-							bson.E{Key: "a", Value: int64(1)},
-							bson.E{Key: "a", Value: int64(2)},
-							bson.E{Key: "a", Value: int64(3)},
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "b", Value: int64(1)},
-								bson.E{Key: "c", Value: int64(1)}}}}}},
+							bson.D{
+								bson.E{Key: "a", Value: int64(1)}},
+							bson.D{
+								bson.E{Key: "a", Value: int64(2)}},
+							bson.D{
+								bson.E{Key: "a", Value: int64(3)}},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "b", Value: int64(1)}},
+									bson.D{
+										bson.E{Key: "c", Value: int64(1)}}}}}}}},
 				)
 
 				testutil.ExecuteSuccessTest(t,
@@ -238,12 +253,18 @@ func TestParsing(t *testing.T) {
 					`a==1;b==1,a==2;b==2`,
 					bson.D{
 						bson.E{Key: "$and", Value: bson.A{
-							bson.E{Key: "a", Value: int64(1)},
-							bson.E{Key: "$or", Value: bson.A{
-								bson.E{Key: "b", Value: int64(1)},
-								bson.E{Key: "$and", Value: bson.A{
-									bson.E{Key: "a", Value: int64(2)},
-									bson.E{Key: "b", Value: int64(2)}}}}}}}},
+							bson.D{
+								bson.E{Key: "a", Value: int64(1)}},
+							bson.D{
+								bson.E{Key: "$or", Value: bson.A{
+									bson.D{
+										bson.E{Key: "b", Value: int64(1)}},
+									bson.D{
+										bson.E{Key: "$and", Value: bson.A{
+											bson.D{
+												bson.E{Key: "a", Value: int64(2)}},
+											bson.D{
+												bson.E{Key: "b", Value: int64(2)}}}}}}}}}}},
 				)
 			})
 
@@ -253,20 +274,24 @@ func TestParsing(t *testing.T) {
 					`(a==1;b==1),(a==2;b==2),(a==3;b==3)`,
 					bson.D{
 						bson.E{Key: "$or", Value: bson.A{
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "a", Value: int64(1)},
-								bson.E{Key: "b", Value: int64(1)},
-							}},
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "a", Value: int64(2)},
-								bson.E{Key: "b", Value: int64(2)},
-							}},
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "a", Value: int64(3)},
-								bson.E{Key: "b", Value: int64(3)},
-							}},
-						}},
-					},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "a", Value: int64(1)}},
+									bson.D{
+										bson.E{Key: "b", Value: int64(1)}}}}},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "a", Value: int64(2)}},
+									bson.D{
+										bson.E{Key: "b", Value: int64(2)}}}}},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "a", Value: int64(3)}},
+									bson.D{
+										bson.E{Key: "b", Value: int64(3)}}}}}}}},
 				)
 			})
 
@@ -276,22 +301,26 @@ func TestParsing(t *testing.T) {
 					`(a==1;b==1),((a==2,b==2);(a==3,b==3))`,
 					bson.D{
 						bson.E{Key: "$or", Value: bson.A{
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "a", Value: int64(1)},
-								bson.E{Key: "b", Value: int64(1)},
-							}},
-							bson.E{Key: "$and", Value: bson.A{
-								bson.E{Key: "$or", Value: bson.A{
-									bson.E{Key: "a", Value: int64(2)},
-									bson.E{Key: "b", Value: int64(2)},
-								}},
-								bson.E{Key: "$or", Value: bson.A{
-									bson.E{Key: "a", Value: int64(3)},
-									bson.E{Key: "b", Value: int64(3)},
-								}},
-							}},
-						}},
-					},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "a", Value: int64(1)}},
+									bson.D{
+										bson.E{Key: "b", Value: int64(1)}}}}},
+							bson.D{
+								bson.E{Key: "$and", Value: bson.A{
+									bson.D{
+										bson.E{Key: "$or", Value: bson.A{
+											bson.D{
+												bson.E{Key: "a", Value: int64(2)}},
+											bson.D{
+												bson.E{Key: "b", Value: int64(2)}}}}},
+									bson.D{
+										bson.E{Key: "$or", Value: bson.A{
+											bson.D{
+												bson.E{Key: "a", Value: int64(3)}},
+											bson.D{
+												bson.E{Key: "b", Value: int64(3)}}}}}}}}}}},
 				)
 			})
 		})
@@ -342,8 +371,11 @@ func TestParsing(t *testing.T) {
 				`name=="steven",age=ge=18`,
 				bson.D{
 					bson.E{Key: "$or", Value: bson.A{
-						bson.E{Key: "name", Value: "steven"},
-						bson.E{Key: "age", Value: bson.E{Key: "$gte", Value: int64(18)}}}}},
+						bson.D{
+							bson.E{Key: "name", Value: "steven"}},
+						bson.D{
+							bson.E{Key: "age", Value: bson.D{
+								bson.E{Key: "$gte", Value: int64(18)}}}}}}},
 			)
 		})
 
@@ -373,4 +405,38 @@ func TestInterpretation(t *testing.T) {
 	}
 	testutil.Populate(t, collection, items)
 
+	t.Run("FilterByGender_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		filter, err := parser.Parse(`gender=="female"`)
+		require.NoError(t, err)
+
+		testutil.FindCompare(t, collection, filter, nil, items[1], items[2])
+	})
+
+	t.Run("FilterByGenderAndAgeGreater_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		filter, err := parser.Parse(`gender=="female";age=ge=30`)
+		require.NoError(t, err)
+		fmt.Printf("%+v\n", filter)
+
+		testutil.FindCompare(t, collection, filter, nil, items[2])
+	})
+
+	t.Run("FilterAgeBetween20And50_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		filter, err := parser.Parse(`age=ge=20;age=le=50`)
+		require.NoError(t, err)
+		fmt.Printf("%+v\n", filter)
+
+		testutil.FindCompare(t, collection, filter, nil, items[1], items[2], items[3])
+	})
+
+	t.Run("FilterAgeBetween25And50OrName_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		filter, err := parser.Parse(`first_name=="Alexa",(age=ge=25;age=le=50)`)
+		require.NoError(t, err)
+		fmt.Printf("%+v\n", filter)
+
+		testutil.FindCompare(t, collection, filter, nil, items[1], items[2], items[3])
+	})
 }
