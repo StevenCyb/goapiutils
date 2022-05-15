@@ -120,7 +120,7 @@ func TestInterpretation(t *testing.T) {
 		testutil.FindCompare(t, collection, nil, sort, items[1], items[0], items[3], items[2])
 	})
 
-	t.Run("SortByName_Success", func(t *testing.T) {
+	t.Run("SortByGenderAscAndAgeDesc_Success", func(t *testing.T) {
 		parser := NewParser(nil)
 		sort, err := parser.Parse(`gender=asc,age=desc`)
 		require.NoError(t, err)
