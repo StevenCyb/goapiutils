@@ -1,6 +1,7 @@
 package rsql
 
 import (
+	"context"
 	"regexp"
 	"testing"
 
@@ -360,5 +361,13 @@ func TestParsing(t *testing.T) {
 func TestInterpretation(t *testing.T) {
 	server := testutil.NewStrikemongoServer(t)
 	defer server.Stop()
+	mongoClient, collection := testutil.NewClientWithCollection(t, server)
+	defer mongoClient.Disconnect(context.Background())
+	testutil.Populate(t, collection,
+		testutil.DummyDoc{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},
+		testutil.DummyDoc{FirstName: "Alexa", LatsName: "Amaizon", Gender: "female", Age: 22},
+		testutil.DummyDoc{FirstName: "Tina", LatsName: "Someone", Gender: "female", Age: 33},
+		testutil.DummyDoc{FirstName: "Samal", LatsName: "Someone", Gender: "male", Age: 26},
+	)
 	// TODO user strikemongo for testing
 }
