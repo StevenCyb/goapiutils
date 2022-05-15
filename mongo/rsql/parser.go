@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// Types that are used in this parser
 const (
 	TYPE_SKIP                   tokenizer.Type = "SKIP"
 	TYPE_AND_COMPOSITE          tokenizer.Type = ";"

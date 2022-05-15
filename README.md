@@ -1,6 +1,6 @@
 # TODO
-- improve tests
 - improve doc
+- improve tests
 
 # GoQuery
 [![GitHub release badge](https://badgen.net/github/release/StevenCyb/goquery/stable)](https://github.com/StevenCyb/goquery/releases/latest)

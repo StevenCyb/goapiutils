@@ -58,6 +58,8 @@ func (t *Tokenizer) GetNextToken() (*Token, error) {
 		part[:1])
 }
 
+// NewTokenizer create a new tokenizer instance
+// with given parameters
 func NewTokenizer(query string, skipTokenType, policyCheckType Type, spec []*Spec, policy *Policy) *Tokenizer {
 	return &Tokenizer{
 		cursor:          0,
