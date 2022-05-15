@@ -1,7 +1,3 @@
-# TODO
-- improve doc
-- improve tests
-
 # GoQuery
 [![GitHub release badge](https://badgen.net/github/release/StevenCyb/goquery/stable)](https://github.com/StevenCyb/goquery/releases/latest)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/StevenCyb/goquery/ci-test?label=Tests&logo=GitHub)

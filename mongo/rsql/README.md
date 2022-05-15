@@ -4,7 +4,7 @@ It's an URI-friendly syntax and therefore well suited for API's.
 
 ## The language
 ### Basics
-RSQL supports the following value comparison operators for `"string"`, `number` and `bool`:
+RSQL supports the following value comparison operators for `"string"`, `number` and `bool` literals:
 | Operator | Description       |
 |----------|-------------------|
 | ==       | equal             |
@@ -22,7 +22,7 @@ In addition it supports the following array comparison operators (used like `log
 | =in=           | contains     |
 | =out=          | not-contains |
 
-Multiple comparisons can be combined with operators:
+Multiple comparisons can be combined with composite operators:
 | Operator | Description |
 |----------|-------------|
 | ;        | Logical AND |
@@ -71,7 +71,7 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
   queryExpressionString := r.URL.Query().Get("query")
 
   parser := rsql.NewParser(
-    // just allow the requester expression with 
+    // just allow expression with 
     // "first_name", "last_name" and "age"
     tokenizer.NewPolicy(
       tokenizer.WHITELIST_POLICY,
