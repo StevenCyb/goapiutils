@@ -5,5 +5,5 @@
 
 This is a collection of query parser that can be used for query parsing e.g. for API's.
 Available query-parsers are:
-- [RSQL parser for MongoDB find queries](mongo/rsql/README.md)
-- [Parser for MongoDB sort options](mongo/sort/README.md)
+- [RSQL parser for MongoDB find queries](parser/mongo/rsql/README.md)
+- [Parser for MongoDB sort options](parser/mongo/sort/README.md)
