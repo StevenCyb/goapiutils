@@ -7,6 +7,7 @@ import (
 	"github.com/StevenCyb/goquery/errs"
 	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
 	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/stretchr/testify/require"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -97,16 +98,33 @@ func TestParsing(t *testing.T) {
 }
 
 func TestInterpretation(t *testing.T) {
+	ctx := context.Background()
 	server := testutil.NewStrikemongoServer(t)
 	defer server.Stop()
 	mongoClient, collection := testutil.NewClientWithCollection(t, server)
-	defer mongoClient.Disconnect(context.Background())
-	testutil.Populate(t, collection,
-		testutil.DummyDoc{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},
-		testutil.DummyDoc{FirstName: "Alexa", LatsName: "Amaizon", Gender: "female", Age: 22},
-		testutil.DummyDoc{FirstName: "Tina", LatsName: "Someone", Gender: "female", Age: 33},
-		testutil.DummyDoc{FirstName: "Samal", LatsName: "Someone", Gender: "male", Age: 26},
-	)
+	defer mongoClient.Disconnect(ctx)
 
-	// TODO user strikemongo for testing
+	items := []testutil.DummyDoc{
+		{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},
+		{FirstName: "Alexa", LatsName: "Amaizon", Gender: "female", Age: 22},
+		{FirstName: "Tina", LatsName: "Someone", Gender: "female", Age: 33},
+		{FirstName: "Samal", LatsName: "Someone", Gender: "male", Age: 26},
+	}
+	testutil.Populate(t, collection, items)
+
+	t.Run("SortByName_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		sort, err := parser.Parse(`first_name=asc`)
+		require.NoError(t, err)
+
+		testutil.FindCompare(t, collection, nil, sort, items[1], items[0], items[3], items[2])
+	})
+
+	t.Run("SortByName_Success", func(t *testing.T) {
+		parser := NewParser(nil)
+		sort, err := parser.Parse(`gender=asc,age=desc`)
+		require.NoError(t, err)
+
+		testutil.FindCompare(t, collection, nil, sort, items[2], items[1], items[0], items[3])
+	})
 }
