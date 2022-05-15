@@ -3,8 +3,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			"VARIANT": "1.17",
-			"MONGO_BIN": "mongod"
+			"VARIANT": "1.17"
 		}
 	},
 	
