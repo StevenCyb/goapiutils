@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -13,18 +14,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const mongoVersion = "4.2.0"
+
 // NewStrikemongoServer creates a new strikemongo
 // instance. Connection string can be obtained by
 // `strikememongo.RandomDatabase()`. Keep in mind
 // to stop the server after testing
 // `defer mongoServer.Stop()`.
 func NewStrikemongoServer(t *testing.T) *strikememongo.Server {
-	mongoServer, err := strikememongo.StartWithOptions(&strikememongo.Options{
+	options := &strikememongo.Options{
 		ShouldUseReplica: false,
-		MongodBin:        "mongod",
 		LogLevel:         strikememongolog.LogLevelDebug,
 		StartupTimeout:   30 * time.Second,
-	})
+	}
+
+	if mongoBin := os.Getenv("MONGO_BIN"); mongoBin != "" {
+		options.MongodBin = mongoBin
+	} else {
+		options.MongoVersion = mongoVersion
+	}
+
+	mongoServer, err := strikememongo.StartWithOptions(options)
 	require.NoError(t, err)
 
 	return mongoServer
