@@ -101,8 +101,9 @@ func TestInterpretation(t *testing.T) {
 	ctx := context.Background()
 	server := testutil.NewStrikemongoServer(t)
 	defer server.Stop()
-	mongoClient, collection := testutil.NewClientWithCollection(t, server)
+	mongoClient, collection, database := testutil.NewClientWithCollection(t, server)
 	defer mongoClient.Disconnect(ctx)
+	defer database.Drop(ctx)
 
 	items := []testutil.DummyDoc{
 		{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},

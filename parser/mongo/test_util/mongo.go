@@ -47,15 +47,16 @@ func randomID() string {
 }
 
 // NewClientWithCollection create a new mongo client for given strikemongo
-func NewClientWithCollection(t *testing.T, mongoDB *strikememongo.Server) (*mongo.Client, *mongo.Collection) {
+func NewClientWithCollection(t *testing.T, mongoDB *strikememongo.Server) (*mongo.Client, *mongo.Collection, *mongo.Database) {
 	client, err := mongo.Connect(
 		context.Background(),
 		options.Client().ApplyURI(mongoDB.URIWithRandomDB()))
 	require.NoError(t, err)
 
-	collection := client.Database(randomID()).Collection(randomID())
+	database := client.Database(randomID())
+	collection := database.Collection(randomID())
 
-	return client, collection
+	return client, collection, database
 }
 
 // DummyDoc is a simple dummy doc for

@@ -8,7 +8,6 @@ import (
 
 	"github.com/StevenCyb/goquery/errs"
 	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
-	"github.com/StevenCyb/goquery/tokenizer"
 	"github.com/stretchr/testify/require"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -363,39 +362,40 @@ func TestParsing(t *testing.T) {
 		})
 	})
 
-	t.Run("WithPolicy", func(t *testing.T) {
-		t.Run("WithAllowedFieldnames_Success", func(t *testing.T) {
-			testutil.ExecuteSuccessTest(t,
-				NewParser(
-					tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "name", "age")),
-				`name=="steven",age=ge=18`,
-				bson.D{
-					bson.E{Key: "$or", Value: bson.A{
-						bson.D{
-							bson.E{Key: "name", Value: "steven"}},
-						bson.D{
-							bson.E{Key: "age", Value: bson.D{
-								bson.E{Key: "$gte", Value: int64(18)}}}}}}},
-			)
-		})
+	// t.Run("WithPolicy", func(t *testing.T) {
+	// 	t.Run("WithAllowedFieldnames_Success", func(t *testing.T) {
+	// 		testutil.ExecuteSuccessTest(t,
+	// 			NewParser(
+	// 				tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "name", "age")),
+	// 			`name=="steven",age=ge=18`,
+	// 			bson.D{
+	// 				bson.E{Key: "$or", Value: bson.A{
+	// 					bson.D{
+	// 						bson.E{Key: "name", Value: "steven"}},
+	// 					bson.D{
+	// 						bson.E{Key: "age", Value: bson.D{
+	// 							bson.E{Key: "$gte", Value: int64(18)}}}}}}},
+	// 		)
+	// 	})
 
-		t.Run("WithDisallowedFieldnames_Fail", func(t *testing.T) {
-			testutil.ExecuteFailedTest(t,
-				NewParser(
-					tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "name", "age")),
-				`name=="steven",age=ge=18,gender="male"`,
-				errs.NewErrPolicyViolation("gender"),
-			)
-		})
-	})
+	// 	t.Run("WithDisallowedFieldnames_Fail", func(t *testing.T) {
+	// 		testutil.ExecuteFailedTest(t,
+	// 			NewParser(
+	// 				tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "name", "age")),
+	// 			`name=="steven",age=ge=18,gender="male"`,
+	// 			errs.NewErrPolicyViolation("gender"),
+	// 		)
+	// 	})
+	// })
 }
 
 func TestInterpretation(t *testing.T) {
 	ctx := context.Background()
 	server := testutil.NewStrikemongoServer(t)
 	defer server.Stop()
-	mongoClient, collection := testutil.NewClientWithCollection(t, server)
+	mongoClient, collection, database := testutil.NewClientWithCollection(t, server)
 	defer mongoClient.Disconnect(ctx)
+	defer database.Drop(ctx)
 
 	items := []testutil.DummyDoc{
 		{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},
