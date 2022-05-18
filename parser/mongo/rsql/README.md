@@ -4,36 +4,31 @@ It's an URI-friendly syntax and therefore well suited for API's.
 
 ## The language
 ### Basics
-RSQL supports the following value comparison operators for `"string"`, `number` and `bool` literals:
-| Operator | Description       |
-|----------|-------------------|
-| ==       | equal             |
-| !=       | not-equal         |
-| =gt=     | greater-than      |
-| =ge=     | greater-than-qual |
-| =lt=     | less-than         |
-| =le=     | less-than-equal   |
-| =sw=     | starts with       |
-| =wd=     | ends with         |
-
-In addition it supports the following array comparison operators (used like `log_level=in=("error","warning")`):
-| Operator | Description        |
-|----------|--------------------|
-| =in=           | contains     |
-| =out=          | not-contains |
+RSQL supports multiple comparison operations.
+The following table gives an overview and a matrix that shows which literals can be used with the corresponding operators.
+| Operator | Description       | Bool | String | Number | Array | Example                                    |
+|----------|-------------------|------|--------|--------|-------|--------------------------------------------|
+| ==       | equal             | ✔️   | ✔️    | ✔️     | ❌   | `id=="A43Gd2fd3f32l"`                      |
+| !=       | not-equal         | ✔️   | ✔️    | ✔️     | ❌   | `status!="pending"`                        |
+| =gt=     | greater-than      | ❌   | ❌    | ✔️     | ❌   | `probability=gt=0.5`                       |
+| =ge=     | greater-than-qual | ❌   | ❌    | ✔️     | ❌   | `age=ge=18`                                |
+| =lt=     | less-than         | ❌   | ❌    | ✔️     | ❌   | `probability=lt=0.5`                       |
+| =le=     | less-than-equal   | ❌   | ❌    | ✔️     | ❌   | `high=le=1.60`                             |
+| =sw=     | starts with       | ❌   | ✔️    | ❌     | ❌   | `table=sw="DB_"`                           |
+| =ew=     | ends with         | ❌   | ✔️    | ❌     | ❌   | `file=ew=".jpg"`                           |
+| =in=     | contains          | ❌   | ❌    | ❌     | ✔️   | `log_level=in=("panic","error","warning")` |
+| =out=    | not-contains      | ❌   | ❌    | ❌     | ✔️   | `grade=out=(1,2)`                          |
 
 Multiple comparisons can be combined with composite operators:
-| Operator | Description |
-|----------|-------------|
-| ;        | Logical AND |
-| ,        | Logical OR  |
+| Operator | Description | Example                            |
+|----------|-------------|------------------------------------|
+| ;        | Logical AND | `gender=="female";age=ge=30`       |
+| ,        | Logical OR  | `level=="senior",level=="expert"`  |
 
 For more advanced queries, `context` may be helpful.
 They can be used by round brackets e.g. `(expression;expression),(expression;expression)`.
-### RSQL examples
-- Log-Level *panic*, *error* or *warning* => `log_level=in=("panic","error","warning")`
-- Female with age from 30 or higher => `gender=="female";age=ge=30`
-- Binary XOR (one is *1* and one *0*) => `(a==0;b==1),(a==1;b==0)`
+A more accurate example could be a binary XOR (only `a` or `b` is `1`) `(a==0;b==1),(a==1;b==0)`.
+
 ## Example
 ### For API
 ```golang
