@@ -14,17 +14,19 @@ import (
 
 // Types that are used in this parser
 const (
-	TYPE_SKIP                   tokenizer.Type = "SKIP"
-	TYPE_AND_COMPOSITE          tokenizer.Type = ";"
-	TYPE_OR_COMPOSITE           tokenizer.Type = ","
-	TYPE_CONTEXT_START          tokenizer.Type = "("
-	TYPE_CONTEXT_END            tokenizer.Type = ")"
-	TYPE_VALUE_COMPARE_OPERATOR tokenizer.Type = "VALUE_COMPARE_OPERATOR"
-	TYPE_ARRAY_COMPARE_OPERATOR tokenizer.Type = "ARRAY_COMPARE_OPERATOR"
-	TYPE_BOOL_LITERAL           tokenizer.Type = "BOOL_LITERAL"
-	TYPE_QUOTED_STRING_LITERAL  tokenizer.Type = "QUOTED_STRING_LITERAL"
-	TYPE_FIELD_NAME             tokenizer.Type = "FIELD_NAME"
-	TYPE_NUMBER_LITERAL         tokenizer.Type = "NUMERIC_LITERAL"
+	TYPE_SKIP                                 tokenizer.Type = "SKIP"
+	TYPE_AND_COMPOSITE                        tokenizer.Type = ";"
+	TYPE_OR_COMPOSITE                         tokenizer.Type = ","
+	TYPE_CONTEXT_START                        tokenizer.Type = "("
+	TYPE_CONTEXT_END                          tokenizer.Type = ")"
+	TYPE_VALUE_COMPARE_OPERATOR               tokenizer.Type = "VALUE_COMPARE_OPERATOR"
+	TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR tokenizer.Type = "QUOTED_STRING_VALUE_COMPARE_OPERATOR"
+	TYPE_NUMERIC_VALUE_COMPARE_OPERATOR       tokenizer.Type = "NUMERIC_VALUE_COMPARE_OPERATOR"
+	TYPE_ARRAY_COMPARE_OPERATOR               tokenizer.Type = "ARRAY_COMPARE_OPERATOR"
+	TYPE_BOOL_LITERAL                         tokenizer.Type = "BOOL_LITERAL"
+	TYPE_QUOTED_STRING_LITERAL                tokenizer.Type = "QUOTED_STRING_LITERAL"
+	TYPE_FIELD_NAME                           tokenizer.Type = "FIELD_NAME"
+	TYPE_NUMBER_LITERAL                       tokenizer.Type = "NUMERIC_LITERAL"
 )
 
 // specialEncode is the map for encoding
@@ -91,7 +93,9 @@ func (p *Parser) Parse(query string) (bson.D, error) {
 			tokenizer.NewSpec(`^\)`, TYPE_CONTEXT_END),
 			tokenizer.NewSpec(`^;`, TYPE_AND_COMPOSITE),
 			tokenizer.NewSpec(`^,`, TYPE_OR_COMPOSITE),
-			tokenizer.NewSpec(`^(==|!=|=sw=|=ew=|=gt=|=ge=|=lt=|=le=)`, TYPE_VALUE_COMPARE_OPERATOR),
+			tokenizer.NewSpec(`^(==|!=)`, TYPE_VALUE_COMPARE_OPERATOR),
+			tokenizer.NewSpec(`^(=sw=|=ew=)`, TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR),
+			tokenizer.NewSpec(`^(=gt=|=ge=|=lt=|=le=)`, TYPE_NUMERIC_VALUE_COMPARE_OPERATOR),
 			tokenizer.NewSpec(`^(=in=|=out=)`, TYPE_ARRAY_COMPARE_OPERATOR),
 			tokenizer.NewSpec(`(?i)^(true|false)`, TYPE_BOOL_LITERAL),
 			tokenizer.NewSpec(`^(-|\+)?\d+(\.\d+)?`, TYPE_NUMBER_LITERAL),
@@ -220,6 +224,8 @@ func (p *Parser) compositeOperation() (*tokenizer.Token, error) {
 /**
  * <comparison>
  *   : TEXT <singular_operator> <literal>
+ *   | TEXT <singular_string_operator> <quoted_string_literal>
+ *   | TEXT <singular_numeric_operator> <numeric_literal>
  *   | TEXT <plural_operator> "(" <literal_list> ")"
  */
 func (p *Parser) comparison() (*bson.E, error) {
@@ -245,12 +251,48 @@ func (p *Parser) comparison() (*bson.E, error) {
 			return &bson.E{Key: key, Value: literal}, nil
 		case "!=":
 			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$ne", Value: literal}}}, nil
+		default:
+			return nil, errs.NewErrUnexpectedTokenType(
+				p.tokenizer.GetCursorPostion()-len(operator.Value),
+				operator.Type.String(),
+				TYPE_VALUE_COMPARE_OPERATOR.String())
+		}
+	} else if p.lookahead.Type == TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR {
+		operator, err := p.eat(TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR)
+		if err != nil {
+			return nil, err
+		}
+
+		literal, err := p.stringLiteral()
+		if err != nil {
+			return nil, err
+		}
+
+		switch operator.Value {
 		case "=sw=":
 			wildcard, err := regexp.Compile("^" + fmt.Sprintf("%v", literal))
 			return &bson.E{Key: key, Value: *wildcard}, err
 		case "=ew=":
 			wildcard, err := regexp.Compile(fmt.Sprintf("%v", literal) + "$")
 			return &bson.E{Key: key, Value: *wildcard}, err
+		default:
+			return nil, errs.NewErrUnexpectedTokenType(
+				p.tokenizer.GetCursorPostion()-len(operator.Value),
+				operator.Type.String(),
+				TYPE_VALUE_COMPARE_OPERATOR.String())
+		}
+	} else if p.lookahead.Type == TYPE_NUMERIC_VALUE_COMPARE_OPERATOR {
+		operator, err := p.eat(TYPE_NUMERIC_VALUE_COMPARE_OPERATOR)
+		if err != nil {
+			return nil, err
+		}
+
+		literal, err := p.numericLiteral()
+		if err != nil {
+			return nil, err
+		}
+
+		switch operator.Value {
 		case "=gt=":
 			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gt", Value: literal}}}, nil
 		case "=ge=":
@@ -319,30 +361,48 @@ func (p *Parser) literal() (interface{}, error) {
 
 		return strings.ToLower(token.Value) == "true", nil
 	} else if p.lookahead.Type == TYPE_QUOTED_STRING_LITERAL {
-		token, err := p.eat(TYPE_QUOTED_STRING_LITERAL)
-		if err != nil {
-			return nil, err
-		}
-
-		replacer := strings.NewReplacer(`"`, "", "'", "")
-		return replacer.Replace(token.Value), nil
+		return p.stringLiteral()
 	} else if p.lookahead.Type == TYPE_NUMBER_LITERAL {
-		token, err := p.eat(TYPE_NUMBER_LITERAL)
-		if err != nil {
-			return nil, err
-		}
-
-		if strings.Contains(token.Value, ".") {
-			return strconv.ParseFloat(token.Value, 64)
-		}
-
-		return strconv.ParseInt(token.Value, 10, 64)
+		return p.numericLiteral()
 	}
 
 	return nil, errs.NewErrUnexpectedTokenType(
 		p.tokenizer.GetCursorPostion()-len(p.lookahead.Value),
 		p.lookahead.Type.String(),
 		"LITERAL")
+}
+
+/**
+ * <quoted_string_literal>
+ * : "'" <TEXT> "'"
+ * | """ <TEXT> """
+ */
+func (p *Parser) stringLiteral() (interface{}, error) {
+	token, err := p.eat(TYPE_QUOTED_STRING_LITERAL)
+	if err != nil {
+		return nil, err
+	}
+
+	replacer := strings.NewReplacer(`"`, "", "'", "")
+	return replacer.Replace(token.Value), nil
+}
+
+/**
+ * <numeric_literal>
+ * : <INT>
+ * | <FLOAT>
+ */
+func (p *Parser) numericLiteral() (interface{}, error) {
+	token, err := p.eat(TYPE_NUMBER_LITERAL)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(token.Value, ".") {
+		return strconv.ParseFloat(token.Value, 64)
+	}
+
+	return strconv.ParseInt(token.Value, 10, 64)
 }
 
 /**
