@@ -6,7 +6,7 @@ This would allow the API to return only the required data. E.g. the roles of a u
 
 ## The language
 The syntax of this language is simple: `path.field_name=subset_field_name`.
-You can concatenate fields to a subset with the separator `,` e.g. `contact.email=email,contact.phone=phone` to get the a subset like `{email: "___", phone: "___"}`.
+You can concatenate fields to a subset with the separator `,` e.g. `contact.email=email,contact.phone=phone` to get the subset like `{email: "___", phone: "___"}`.
 
 ## Example
 ```golang
