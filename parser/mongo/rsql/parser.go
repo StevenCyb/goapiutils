@@ -37,6 +37,7 @@ var specialEncode = map[string]string{
 	`=`: "%5C%3D",
 	`"`: "%22",
 	`'`: "%27",
+	` `: "%20",
 }
 
 // NewParser creates a new parser
