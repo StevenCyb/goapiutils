@@ -8,8 +8,8 @@ RSQL supports multiple comparison operations.
 The following table gives an overview and a matrix that shows which literals can be used with the corresponding operators.
 | Operator | Description       | Bool | String | Number | Array | Example                                    |
 |----------|-------------------|------|--------|--------|-------|--------------------------------------------|
-| ==       | equal             | ✔️   | ✔️    | ✔️     | ❌   | `id=="A43Gd2fd3f32l"`                      |
-| !=       | not-equal         | ✔️   | ✔️    | ✔️     | ❌   | `status!="pending"`                        |
+| ==       | equal             | ✔️   | ✔️    | ✔️     | ✔️   | `id=="A43Gd2fd3f32l"`                      |
+| !=       | not-equal         | ✔️   | ✔️    | ✔️     | ✔️   | `status!="pending"`                        |
 | =gt=     | greater-than      | ❌   | ❌    | ✔️     | ❌   | `probability=gt=0.5`                       |
 | =ge=     | greater-than-qual | ❌   | ❌    | ✔️     | ❌   | `age=ge=18`                                |
 | =lt=     | less-than         | ❌   | ❌    | ✔️     | ❌   | `probability=lt=0.5`                       |
@@ -18,6 +18,8 @@ The following table gives an overview and a matrix that shows which literals can
 | =ew=     | ends with         | ❌   | ✔️    | ❌     | ❌   | `file=ew=".jpg"`                           |
 | =in=     | contains          | ❌   | ❌    | ❌     | ✔️   | `log_level=in=("panic","error","warning")` |
 | =out=    | not-contains      | ❌   | ❌    | ❌     | ✔️   | `grade=out=(1,2)`                          |
+**NOTE:** *equal* and *not equal* can also be used to check if array contains an single element.
+E.g. document has `{roles: ["dev","maintainer","admin"]}`, than you can check if has *admin* role by using `roles=="admin"`.
 
 Multiple comparisons can be combined with composite operators:
 | Operator | Description | Example                            |

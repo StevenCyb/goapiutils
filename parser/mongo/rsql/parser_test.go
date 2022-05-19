@@ -62,6 +62,14 @@ func TestParsing(t *testing.T) {
 				)
 			})
 
+			t.Run("==ARRAY_Success", func(t *testing.T) {
+				testutil.ExecuteSuccessTest(t,
+					NewParser(nil),
+					`roles==("dev","maintainer")`,
+					bson.D{bson.E{Key: "roles", Value: bson.A{"dev", "maintainer"}}},
+				)
+			})
+
 			t.Run("=in=SLICE_Success", func(t *testing.T) {
 				testutil.ExecuteSuccessTest(t,
 					NewParser(nil),
@@ -342,11 +350,6 @@ func TestParsing(t *testing.T) {
 		})
 
 		t.Run("WithWrongCompareOperation_Fail", func(t *testing.T) {
-			testutil.ExecuteFailedTest(t,
-				NewParser(nil),
-				`x==(1,2,3)`,
-				errs.NewErrUnexpectedTokenType(3, "(", "LITERAL"),
-			)
 			testutil.ExecuteFailedTest(t,
 				NewParser(nil),
 				`x=in=3`,
