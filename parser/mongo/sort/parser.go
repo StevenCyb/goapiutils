@@ -23,6 +23,7 @@ const (
 var specialEncode = map[string]string{
 	`,`: "%5C%2C",
 	`=`: "%5C%3D",
+	` `: "%20",
 }
 
 // NewParser creates a new parser
