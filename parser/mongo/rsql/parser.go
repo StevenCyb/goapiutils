@@ -241,9 +241,27 @@ func (p *Parser) comparison() (*bson.E, error) {
 			return nil, err
 		}
 
-		literal, err := p.literal()
-		if err != nil {
-			return nil, err
+		var literal interface{}
+		if p.lookahead.Type == TYPE_CONTEXT_START {
+			_, err = p.eat(TYPE_CONTEXT_START)
+			if err != nil {
+				return nil, err
+			}
+
+			literal, err = p.literalList()
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = p.eat(TYPE_CONTEXT_END)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			literal, err = p.literal()
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		switch operator.Value {
