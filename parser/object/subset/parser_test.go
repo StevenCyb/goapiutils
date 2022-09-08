@@ -7,6 +7,8 @@ import (
 )
 
 func performTest(t *testing.T, query string, testObject, expected interface{}) {
+	t.Helper()
+
 	parser := NewParser()
 	actual, err := parser.Parse(query, testObject)
 	require.NoError(t, err)
@@ -14,9 +16,13 @@ func performTest(t *testing.T, query string, testObject, expected interface{}) {
 }
 
 func TestSimpleMap(t *testing.T) {
+	t.Parallel()
+
 	var testObject interface{} = map[string]int{"a": 1, "b": 2, "c": 3}
 
 	t.Run("ExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"a=extracted_a",
 			testObject,
@@ -24,6 +30,8 @@ func TestSimpleMap(t *testing.T) {
 	})
 
 	t.Run("NonExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"x=x",
 			testObject,
@@ -32,6 +40,8 @@ func TestSimpleMap(t *testing.T) {
 }
 
 func TestMapWithArray(t *testing.T) {
+	t.Parallel()
+
 	var testObject interface{} = map[string]interface{}{
 		"nested": []map[string]string{
 			{"a": "A", "b": "B", "c": "C"},
@@ -40,6 +50,8 @@ func TestMapWithArray(t *testing.T) {
 	}
 
 	t.Run("ExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"nested=arr",
 			testObject,
@@ -50,6 +62,8 @@ func TestMapWithArray(t *testing.T) {
 	})
 
 	t.Run("NonExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"nested.a=no",
 			testObject,
@@ -58,6 +72,8 @@ func TestMapWithArray(t *testing.T) {
 }
 
 func TestNestedMaps(t *testing.T) {
+	t.Parallel()
+
 	var testObject interface{} = map[string]interface{}{
 		"nested": map[string]map[string]string{
 			"german": {
@@ -70,6 +86,8 @@ func TestNestedMaps(t *testing.T) {
 	}
 
 	t.Run("ExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"nested.english.greet=greet",
 			testObject,
@@ -77,6 +95,8 @@ func TestNestedMaps(t *testing.T) {
 	})
 
 	t.Run("NonExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"nested.english.3=no",
 			testObject,
@@ -85,9 +105,13 @@ func TestNestedMaps(t *testing.T) {
 }
 
 func TestCombinedSubsetsMap(t *testing.T) {
+	t.Parallel()
+
 	var testObject interface{} = map[string]int{"a": 1, "b": 2, "c": 3}
 
 	t.Run("ExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"a=extracted_a,b=extracted_b",
 			testObject,
@@ -95,6 +119,8 @@ func TestCombinedSubsetsMap(t *testing.T) {
 	})
 
 	t.Run("WithOneNonExistingField_Success", func(t *testing.T) {
+		t.Parallel()
+
 		performTest(t,
 			"a=extracted_a,x=x",
 			testObject,

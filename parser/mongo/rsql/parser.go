@@ -8,29 +8,34 @@ import (
 
 	"github.com/StevenCyb/goquery/errs"
 	"github.com/StevenCyb/goquery/tokenizer"
-
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Types that are used in this parser
+// Types that are used in this parser.
 const (
-	TYPE_SKIP                                 tokenizer.Type = "SKIP"
-	TYPE_AND_COMPOSITE                        tokenizer.Type = ";"
-	TYPE_OR_COMPOSITE                         tokenizer.Type = ","
-	TYPE_CONTEXT_START                        tokenizer.Type = "("
-	TYPE_CONTEXT_END                          tokenizer.Type = ")"
-	TYPE_VALUE_COMPARE_OPERATOR               tokenizer.Type = "VALUE_COMPARE_OPERATOR"
-	TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR tokenizer.Type = "QUOTED_STRING_VALUE_COMPARE_OPERATOR"
-	TYPE_NUMERIC_VALUE_COMPARE_OPERATOR       tokenizer.Type = "NUMERIC_VALUE_COMPARE_OPERATOR"
-	TYPE_ARRAY_COMPARE_OPERATOR               tokenizer.Type = "ARRAY_COMPARE_OPERATOR"
-	TYPE_BOOL_LITERAL                         tokenizer.Type = "BOOL_LITERAL"
-	TYPE_QUOTED_STRING_LITERAL                tokenizer.Type = "QUOTED_STRING_LITERAL"
-	TYPE_FIELD_NAME                           tokenizer.Type = "FIELD_NAME"
-	TYPE_NUMBER_LITERAL                       tokenizer.Type = "NUMERIC_LITERAL"
+	SkipType                             tokenizer.Type = "SKIP"
+	AndCompositeType                     tokenizer.Type = ";"
+	OrCompositeType                      tokenizer.Type = ","
+	ContextStartType                     tokenizer.Type = "("
+	ContextEndType                       tokenizer.Type = ")"
+	ValueCompareOperatorType             tokenizer.Type = "VALUE_COMPARE_OPERATOR"
+	QuotedStringValueCompareOperatorType tokenizer.Type = "QUOTED_STRING_VALUE_COMPARE_OPERATOR"
+	NumericValueCompareOperatorType      tokenizer.Type = "NUMERIC_VALUE_COMPARE_OPERATOR"
+	ArrayCompareOperatorType             tokenizer.Type = "ARRAY_COMPARE_OPERATOR"
+	BoolLiteralType                      tokenizer.Type = "BOOL_LITERAL"
+	QuotedStringLiteralType              tokenizer.Type = "QUOTED_STRING_LITERAL"
+	FieldNameType                        tokenizer.Type = "FIELD_NAME"
+	NumberLiteralType                    tokenizer.Type = "NUMERIC_LITERAL"
+
+	intBase     = 10
+	int64Size   = 64
+	float64Size = 64
 )
 
+// nolint:gochecknoglobals
 // specialEncode is the map for encoding
-// a list of special characters
+// a list of special characters.
 var specialEncode = map[string]string{
 	`,`: "%5C%2C",
 	`;`: "%5C%3B",
@@ -40,7 +45,7 @@ var specialEncode = map[string]string{
 	` `: "%20",
 }
 
-// NewParser creates a new parser
+// NewParser creates a new parser.
 func NewParser(policy *tokenizer.Policy) *Parser {
 	return &Parser{
 		policy: policy,
@@ -48,23 +53,24 @@ func NewParser(policy *tokenizer.Policy) *Parser {
 }
 
 // Parser provides the logic to parse
-// rsql statements
+// rsql statements.
 type Parser struct {
 	tokenizer *tokenizer.Tokenizer
 	lookahead *tokenizer.Token
 	policy    *tokenizer.Policy
 }
 
-// eat return a token with expected type
+// eat return a token with expected type.
 func (p *Parser) eat(tokenType tokenizer.Type) (*tokenizer.Token, error) {
 	token := p.lookahead
 
 	if token == nil {
 		return nil, errs.NewErrUnexpectedInputEnd(tokenType.String())
 	}
+
 	if token.Type != tokenType {
 		return nil, errs.NewErrUnexpectedTokenType(
-			p.tokenizer.GetCursorPostion(),
+			p.tokenizer.GetCursorPosition(),
 			token.Type.String(),
 			tokenType.String(),
 		)
@@ -72,11 +78,14 @@ func (p *Parser) eat(tokenType tokenizer.Type) (*tokenizer.Token, error) {
 
 	var err error
 	p.lookahead, err = p.tokenizer.GetNextToken()
-	return token, err
+
+	return token, err // nolint:wrapcheck
 }
 
-// Parse a given query
+// Parse a given query.
 func (p *Parser) Parse(query string) (bson.D, error) {
+	var err error
+
 	if query == "" {
 		return bson.D{}, nil
 	}
@@ -87,53 +96,57 @@ func (p *Parser) Parse(query string) (bson.D, error) {
 
 	p.tokenizer = tokenizer.NewTokenizer(
 		query,
-		TYPE_SKIP, TYPE_FIELD_NAME,
+		SkipType, FieldNameType,
 		[]*tokenizer.Spec{
-			tokenizer.NewSpec(`^\s+`, TYPE_SKIP),
-			tokenizer.NewSpec(`^\(`, TYPE_CONTEXT_START),
-			tokenizer.NewSpec(`^\)`, TYPE_CONTEXT_END),
-			tokenizer.NewSpec(`^;`, TYPE_AND_COMPOSITE),
-			tokenizer.NewSpec(`^,`, TYPE_OR_COMPOSITE),
-			tokenizer.NewSpec(`^(==|!=)`, TYPE_VALUE_COMPARE_OPERATOR),
-			tokenizer.NewSpec(`^(=sw=|=ew=)`, TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR),
-			tokenizer.NewSpec(`^(=gt=|=ge=|=lt=|=le=)`, TYPE_NUMERIC_VALUE_COMPARE_OPERATOR),
-			tokenizer.NewSpec(`^(=in=|=out=)`, TYPE_ARRAY_COMPARE_OPERATOR),
-			tokenizer.NewSpec(`(?i)^(true|false)`, TYPE_BOOL_LITERAL),
-			tokenizer.NewSpec(`^(-|\+)?\d+(\.\d+)?`, TYPE_NUMBER_LITERAL),
-			tokenizer.NewSpec(`^("[^"]*"|'[^']*')`, TYPE_QUOTED_STRING_LITERAL),
-			tokenizer.NewSpec(`^[^!=]*`, TYPE_FIELD_NAME),
+			tokenizer.NewSpec(`^\s+`, SkipType),
+			tokenizer.NewSpec(`^\(`, ContextStartType),
+			tokenizer.NewSpec(`^\)`, ContextEndType),
+			tokenizer.NewSpec(`^;`, AndCompositeType),
+			tokenizer.NewSpec(`^,`, OrCompositeType),
+			tokenizer.NewSpec(`^(==|!=)`, ValueCompareOperatorType),
+			tokenizer.NewSpec(`^(=sw=|=ew=)`, QuotedStringValueCompareOperatorType),
+			tokenizer.NewSpec(`^(=gt=|=ge=|=lt=|=le=)`, NumericValueCompareOperatorType),
+			tokenizer.NewSpec(`^(=in=|=out=)`, ArrayCompareOperatorType),
+			tokenizer.NewSpec(`(?i)^(true|false)`, BoolLiteralType),
+			tokenizer.NewSpec(`^(-|\+)?\d+(\.\d+)?`, NumberLiteralType),
+			tokenizer.NewSpec(`^("[^"]*"|'[^']*')`, QuotedStringLiteralType),
+			tokenizer.NewSpec(`^[^!=]*`, FieldNameType),
 		},
 		p.policy,
 	)
 
-	var err error
 	p.lookahead, err = p.tokenizer.GetNextToken()
 	if err != nil {
-		return nil, err
+		return nil, err // nolint:wrapcheck
 	}
 
 	return p.expression()
 }
 
-/**
+/*
  * <expression>
  *   : <context>
  *   | <context> <composite_operator> <expression>
  *   | <comparison>
  *   | <comparison> <composite_operator> <expression>
+ * .
  */
-func (p *Parser) expression() ([]bson.E, error) {
-	sortStatements := []bson.E{}
+func (p *Parser) expression() ([]bson.E, error) { // nolint:funlen
+	var (
+		left           bson.E
+		sortStatements = []bson.E{}
+	)
+
 	if p.lookahead == nil {
-		return nil, errs.NewErrUnexpectedInputEnd(TYPE_FIELD_NAME.String())
+		return nil, errs.NewErrUnexpectedInputEnd(FieldNameType.String())
 	}
 
-	var left bson.E
-	if p.lookahead.Type == TYPE_CONTEXT_START {
+	if p.lookahead.Type == ContextStartType {
 		tmp, err := p.context()
 		if err != nil {
 			return nil, err
 		}
+
 		left = tmp[0]
 	} else {
 		tmp, err := p.comparison()
@@ -143,7 +156,8 @@ func (p *Parser) expression() ([]bson.E, error) {
 		left = *tmp
 	}
 
-	if p.lookahead != nil && p.lookahead.Type != TYPE_CONTEXT_END {
+	// nolint:nestif
+	if p.lookahead != nil && p.lookahead.Type != ContextEndType {
 		logicalOperation, err := p.compositeOperation()
 		if err != nil {
 			return nil, err
@@ -154,9 +168,13 @@ func (p *Parser) expression() ([]bson.E, error) {
 			return nil, err
 		}
 
-		if logicalOperation.Type == TYPE_AND_COMPOSITE {
+		if logicalOperation.Type == AndCompositeType {
 			if right[0].Key == "$and" {
-				newA := right[0].Value.(bson.A)
+				newA, ok := right[0].Value.(bson.A)
+				if !ok {
+					return nil, errs.NewErrUnexpectedInput(right[0].Value)
+				}
+
 				newA = append(bson.A{bson.D{left}}, newA...)
 				left = bson.E{Key: "$and", Value: newA}
 			} else {
@@ -164,15 +182,16 @@ func (p *Parser) expression() ([]bson.E, error) {
 			}
 		} else {
 			if right[0].Key == "$or" {
-				newA := right[0].Value.(bson.A)
+				newA, ok := right[0].Value.(bson.A)
+				if !ok {
+					return nil, errs.NewErrUnexpectedInput(right[0].Value)
+				}
+
 				newA = append(bson.A{bson.D{left}}, newA...)
 				left = bson.E{Key: "$or", Value: newA}
 			} else {
 				left = bson.E{Key: "$or", Value: bson.A{bson.D{left}, bson.D{right[0]}}}
 			}
-		}
-		if err != nil {
-			return nil, err
 		}
 	}
 
@@ -181,12 +200,13 @@ func (p *Parser) expression() ([]bson.E, error) {
 	return sortStatements, nil
 }
 
-/**
+/*
  * <context>
  *   : "(" <expression> ")"
+ * .
  */
 func (p *Parser) context() ([]bson.E, error) {
-	_, err := p.eat(TYPE_CONTEXT_START)
+	_, err := p.eat(ContextStartType)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +216,7 @@ func (p *Parser) context() ([]bson.E, error) {
 		return nil, err
 	}
 
-	_, err = p.eat(TYPE_CONTEXT_END)
+	_, err = p.eat(ContextEndType)
 	if err != nil {
 		return nil, err
 	}
@@ -204,230 +224,285 @@ func (p *Parser) context() ([]bson.E, error) {
 	return context, nil
 }
 
-/**
+/*
  * <composite_operator>
  *   : ";"
  *   | ","
+ * .
  */
 func (p *Parser) compositeOperation() (*tokenizer.Token, error) {
-	if p.lookahead.Type == TYPE_AND_COMPOSITE {
-		return p.eat(TYPE_AND_COMPOSITE)
-	} else if p.lookahead.Type == TYPE_OR_COMPOSITE {
-		return p.eat(TYPE_OR_COMPOSITE)
+	if p.lookahead.Type == AndCompositeType {
+		return p.eat(AndCompositeType)
+	} else if p.lookahead.Type == OrCompositeType {
+		return p.eat(OrCompositeType)
 	}
 
 	return nil, errs.NewErrUnexpectedTokenType(
-		p.tokenizer.GetCursorPostion()-len(p.lookahead.Value),
+		p.tokenizer.GetCursorPosition()-len(p.lookahead.Value),
 		p.lookahead.Type.String(),
 		";/,")
 }
 
-/**
- * <comparison>
- *   : TEXT <singular_operator> <literal>
- *   | TEXT <singular_string_operator> <quoted_string_literal>
- *   | TEXT <singular_numeric_operator> <numeric_literal>
- *   | TEXT <plural_operator> "(" <literal_list> ")"
+/*
+ * <array_comparison>
+ *   | <plural_operator> "(" <literal_list> ")"
+ * .
  */
-func (p *Parser) comparison() (*bson.E, error) {
-	keyToken, err := p.eat(TYPE_FIELD_NAME)
+func (p *Parser) arrayComparison(key string) (*bson.E, error) {
+	operator, err := p.eat(ArrayCompareOperatorType)
 	if err != nil {
 		return nil, err
 	}
-	key := keyToken.Value
 
-	if p.lookahead.Type == TYPE_VALUE_COMPARE_OPERATOR {
-		operator, err := p.eat(TYPE_VALUE_COMPARE_OPERATOR)
+	_, err = p.eat(ContextStartType)
+	if err != nil {
+		return nil, err
+	}
+
+	literalList, err := p.literalList()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.eat(ContextEndType)
+	if err != nil {
+		return nil, err
+	}
+
+	switch operator.Value {
+	case "=in=":
+		return &bson.E{Key: key, Value: bson.E{Key: "$in", Value: literalList}}, nil
+	case "=out=":
+		return &bson.E{Key: key, Value: bson.E{Key: "$nin", Value: literalList}}, nil
+	default:
+		return nil, errs.NewErrUnexpectedTokenType(
+			p.tokenizer.GetCursorPosition()-len(operator.Value),
+			operator.Type.String(),
+			ArrayCompareOperatorType.String())
+	}
+}
+
+/*
+ * <numeric_value_comparison>
+ *   | <singular_string_operator> <quoted_string_literal>
+ * .
+ */
+func (p *Parser) numericValueComparison(key string) (*bson.E, error) {
+	operator, err := p.eat(NumericValueCompareOperatorType)
+	if err != nil {
+		return nil, err
+	}
+
+	literal, err := p.numericLiteral()
+	if err != nil {
+		return nil, err
+	}
+
+	switch operator.Value {
+	case "=gt=":
+		return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gt", Value: literal}}}, nil
+	case "=ge=":
+		return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gte", Value: literal}}}, nil
+	case "=lt=":
+		return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lt", Value: literal}}}, nil
+	case "=le=":
+		return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lte", Value: literal}}}, nil
+	default:
+		return nil, errs.NewErrUnexpectedTokenType(
+			p.tokenizer.GetCursorPosition()-len(operator.Value),
+			operator.Type.String(),
+			ValueCompareOperatorType.String())
+	}
+}
+
+/*
+ * <quoted_string_comparison>
+ *   | <singular_string_operator> <quoted_string_literal>
+ * .
+ */
+func (p *Parser) quotedStringComparison(key string) (*bson.E, error) {
+	operator, err := p.eat(QuotedStringValueCompareOperatorType)
+	if err != nil {
+		return nil, err
+	}
+
+	literal, err := p.stringLiteral()
+	if err != nil {
+		return nil, err
+	}
+
+	switch operator.Value {
+	case "=sw=":
+		wildcard, err := regexp.Compile("^" + fmt.Sprintf("%v", literal))
+
+		return &bson.E{Key: key, Value: *wildcard}, errors.Wrap(err, "failed to create wildcard expression")
+	case "=ew=":
+		wildcard, err := regexp.Compile(fmt.Sprintf("%v", literal) + "$")
+
+		return &bson.E{Key: key, Value: *wildcard}, errors.Wrap(err, "failed to create wildcard expression")
+	default:
+		return nil, errs.NewErrUnexpectedTokenType(
+			p.tokenizer.GetCursorPosition()-len(operator.Value),
+			operator.Type.String(),
+			ValueCompareOperatorType.String())
+	}
+}
+
+/*
+ * <literal_comparison>
+ *   : <singular_operator> <literal>
+ * .
+ */
+func (p *Parser) literalComparison(key string) (*bson.E, error) {
+	operator, err := p.eat(ValueCompareOperatorType)
+	if err != nil {
+		return nil, err
+	}
+
+	var literal interface{}
+	// nolint:nestif
+	if p.lookahead.Type == ContextStartType {
+		_, err = p.eat(ContextStartType)
 		if err != nil {
 			return nil, err
 		}
 
-		var literal interface{}
-		if p.lookahead.Type == TYPE_CONTEXT_START {
-			_, err = p.eat(TYPE_CONTEXT_START)
-			if err != nil {
-				return nil, err
-			}
-
-			literal, err = p.literalList()
-			if err != nil {
-				return nil, err
-			}
-
-			_, err = p.eat(TYPE_CONTEXT_END)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			literal, err = p.literal()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		switch operator.Value {
-		case "==":
-			return &bson.E{Key: key, Value: literal}, nil
-		case "!=":
-			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$ne", Value: literal}}}, nil
-		default:
-			return nil, errs.NewErrUnexpectedTokenType(
-				p.tokenizer.GetCursorPostion()-len(operator.Value),
-				operator.Type.String(),
-				TYPE_VALUE_COMPARE_OPERATOR.String())
-		}
-	} else if p.lookahead.Type == TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR {
-		operator, err := p.eat(TYPE_QUOTED_STRING_VALUE_COMPARE_OPERATOR)
+		literal, err = p.literalList()
 		if err != nil {
 			return nil, err
 		}
 
-		literal, err := p.stringLiteral()
+		_, err = p.eat(ContextEndType)
 		if err != nil {
 			return nil, err
 		}
-
-		switch operator.Value {
-		case "=sw=":
-			wildcard, err := regexp.Compile("^" + fmt.Sprintf("%v", literal))
-			return &bson.E{Key: key, Value: *wildcard}, err
-		case "=ew=":
-			wildcard, err := regexp.Compile(fmt.Sprintf("%v", literal) + "$")
-			return &bson.E{Key: key, Value: *wildcard}, err
-		default:
-			return nil, errs.NewErrUnexpectedTokenType(
-				p.tokenizer.GetCursorPostion()-len(operator.Value),
-				operator.Type.String(),
-				TYPE_VALUE_COMPARE_OPERATOR.String())
-		}
-	} else if p.lookahead.Type == TYPE_NUMERIC_VALUE_COMPARE_OPERATOR {
-		operator, err := p.eat(TYPE_NUMERIC_VALUE_COMPARE_OPERATOR)
+	} else {
+		literal, err = p.literal()
 		if err != nil {
 			return nil, err
-		}
-
-		literal, err := p.numericLiteral()
-		if err != nil {
-			return nil, err
-		}
-
-		switch operator.Value {
-		case "=gt=":
-			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gt", Value: literal}}}, nil
-		case "=ge=":
-			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$gte", Value: literal}}}, nil
-		case "=lt=":
-			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lt", Value: literal}}}, nil
-		case "=le=":
-			return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$lte", Value: literal}}}, nil
-		default:
-			return nil, errs.NewErrUnexpectedTokenType(
-				p.tokenizer.GetCursorPostion()-len(operator.Value),
-				operator.Type.String(),
-				TYPE_VALUE_COMPARE_OPERATOR.String())
-		}
-	} else if p.lookahead.Type == TYPE_ARRAY_COMPARE_OPERATOR {
-		operator, err := p.eat(TYPE_ARRAY_COMPARE_OPERATOR)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = p.eat(TYPE_CONTEXT_START)
-		if err != nil {
-			return nil, err
-		}
-
-		literalList, err := p.literalList()
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = p.eat(TYPE_CONTEXT_END)
-		if err != nil {
-			return nil, err
-		}
-
-		switch operator.Value {
-		case "=in=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$in", Value: literalList}}, nil
-		case "=out=":
-			return &bson.E{Key: key, Value: bson.E{Key: "$nin", Value: literalList}}, nil
-		default:
-			return nil, errs.NewErrUnexpectedTokenType(
-				p.tokenizer.GetCursorPostion()-len(operator.Value),
-				operator.Type.String(),
-				TYPE_ARRAY_COMPARE_OPERATOR.String())
 		}
 	}
 
+	switch operator.Value {
+	case "==":
+		return &bson.E{Key: key, Value: literal}, nil
+	case "!=":
+		return &bson.E{Key: key, Value: bson.D{bson.E{Key: "$ne", Value: literal}}}, nil
+	default:
+		return nil, errs.NewErrUnexpectedTokenType(
+			p.tokenizer.GetCursorPosition()-len(operator.Value),
+			operator.Type.String(),
+			ValueCompareOperatorType.String())
+	}
+}
+
+/*
+ * <comparison>
+ *   : TEXT <singular_operator> <literal>
+ *   | TEXT <quoted_string_comparison>
+ *   | TEXT <numeric_value_comparison>
+ *   | TEXT <array_comparison>
+ * .
+ */
+func (p *Parser) comparison() (*bson.E, error) {
+	keyToken, err := p.eat(FieldNameType)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keyToken.Value
+
+	switch p.lookahead.Type {
+	case ValueCompareOperatorType:
+		return p.literalComparison(key)
+	case QuotedStringValueCompareOperatorType:
+		return p.quotedStringComparison(key)
+	case NumericValueCompareOperatorType:
+		return p.numericValueComparison(key)
+	case ArrayCompareOperatorType:
+		return p.arrayComparison(key)
+	}
+
 	return nil, errs.NewErrUnexpectedToken(
-		p.tokenizer.GetCursorPostion()-len(p.lookahead.Value),
+		p.tokenizer.GetCursorPosition()-len(p.lookahead.Value),
 		p.lookahead.Value)
 }
 
-/**
+/*
  * <literal>
  * : <bool_literal>
  * | <quoted_string_literal>
  * | <numeric_literal>
+ * .
  */
 func (p *Parser) literal() (interface{}, error) {
-	if p.lookahead.Type == TYPE_BOOL_LITERAL {
-		token, err := p.eat(TYPE_BOOL_LITERAL)
+	switch p.lookahead.Type {
+	case BoolLiteralType:
+		token, err := p.eat(BoolLiteralType)
 		if err != nil {
 			return nil, err
 		}
 
 		return strings.ToLower(token.Value) == "true", nil
-	} else if p.lookahead.Type == TYPE_QUOTED_STRING_LITERAL {
+	case QuotedStringLiteralType:
 		return p.stringLiteral()
-	} else if p.lookahead.Type == TYPE_NUMBER_LITERAL {
+	case NumberLiteralType:
 		return p.numericLiteral()
 	}
 
 	return nil, errs.NewErrUnexpectedTokenType(
-		p.tokenizer.GetCursorPostion()-len(p.lookahead.Value),
+		p.tokenizer.GetCursorPosition()-len(p.lookahead.Value),
 		p.lookahead.Type.String(),
 		"LITERAL")
 }
 
-/**
+/*
  * <quoted_string_literal>
  * : "'" <TEXT> "'"
  * | """ <TEXT> """
+ * .
  */
 func (p *Parser) stringLiteral() (interface{}, error) {
-	token, err := p.eat(TYPE_QUOTED_STRING_LITERAL)
+	token, err := p.eat(QuotedStringLiteralType)
 	if err != nil {
 		return nil, err
 	}
 
 	replacer := strings.NewReplacer(`"`, "", "'", "")
+
 	return replacer.Replace(token.Value), nil
 }
 
-/**
+/*
  * <numeric_literal>
  * : <INT>
  * | <FLOAT>
+ * .
  */
 func (p *Parser) numericLiteral() (interface{}, error) {
-	token, err := p.eat(TYPE_NUMBER_LITERAL)
+	token, err := p.eat(NumberLiteralType)
 	if err != nil {
 		return nil, err
 	}
 
 	if strings.Contains(token.Value, ".") {
-		return strconv.ParseFloat(token.Value, 64)
+		var value float64
+		value, err = strconv.ParseFloat(token.Value, float64Size)
+
+		return value, errors.Wrap(err, "failed to parse float value")
 	}
 
-	return strconv.ParseInt(token.Value, 10, 64)
+	var value int64
+	value, err = strconv.ParseInt(token.Value, intBase, int64Size)
+
+	return value, errors.Wrap(err, "failed to parse int value")
 }
 
-/**
+/*
  * <literal_list>
  * : <quoted_string_literal> "," <literal_list>
  * | <numeric_literal> "," <literal_list>
+ * .
  */
 func (p *Parser) literalList() (bson.A, error) {
 	items := bson.A{}
@@ -436,14 +511,20 @@ func (p *Parser) literalList() (bson.A, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	items = append(items, body)
 
-	for p.lookahead.Type == TYPE_OR_COMPOSITE {
-		p.eat(TYPE_OR_COMPOSITE)
+	for p.lookahead.Type == OrCompositeType {
+		_, err := p.eat(OrCompositeType)
+		if err != nil {
+			return nil, err
+		}
+
 		body, err = p.literal()
 		if err != nil {
 			return nil, err
 		}
+
 		items = append(items, body)
 	}
 

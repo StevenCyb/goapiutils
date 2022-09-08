@@ -8,7 +8,9 @@ import (
 )
 
 func TestErrPolicyViolation(t *testing.T) {
-	key := "abc"
+	t.Parallel()
+
+	key := "a"
 	require.Equal(t,
 		fmt.Sprintf(errPolicyViolationMessage, key),
 		NewErrPolicyViolation(key).Error(),

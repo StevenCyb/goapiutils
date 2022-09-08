@@ -4,30 +4,30 @@ import (
 	"github.com/StevenCyb/goquery/errs"
 )
 
-// tokenizer that lazily pulls a token from a stream
+// tokenizer that lazily pulls a token from a stream.
 type Tokenizer struct {
-	cursor          int
 	query           string
 	skipTokenType   Type
-	spec            []*Spec
-	policyCheckType Type
 	policy          *Policy
+	policyCheckType Type
+	spec            []*Spec
+	cursor          int
 }
 
-// GetCursorPostion return the position of the cursor
-func (t *Tokenizer) GetCursorPostion() int {
+// GetCursorPosition return the position of the cursor.
+func (t *Tokenizer) GetCursorPosition() int {
 	return t.cursor
 }
 
-// HasMoreTokens checks eather we still have more tokens
+// HasMoreTokens checks aether we still have more tokens.
 func (t *Tokenizer) HasMoreTokens() bool {
 	return t.cursor < len(t.query)
 }
 
-// GetNextToken obtains next token
+// GetNextToken obtains next token.
 func (t *Tokenizer) GetNextToken() (*Token, error) {
 	if !t.HasMoreTokens() {
-		return nil, nil
+		return nil, nil // nolint:nilnil
 	}
 
 	part := t.query[t.cursor:]
@@ -59,7 +59,7 @@ func (t *Tokenizer) GetNextToken() (*Token, error) {
 }
 
 // NewTokenizer create a new tokenizer instance
-// with given parameters
+// with given parameters.
 func NewTokenizer(query string, skipTokenType, policyCheckType Type, spec []*Spec, policy *Policy) *Tokenizer {
 	return &Tokenizer{
 		cursor:          0,

@@ -1,36 +1,36 @@
 package tokenizer
 
-// PolicyType represent policy type values
+// PolicyType represent policy type values.
 type PolicyType byte
 
 const (
-	// WHITELIST_POLICY declarate a policy
-	// to use whitelist logic
-	WHITELIST_POLICY PolicyType = 0
-	// BLACKLIST_POLICY declarate a policy
-	// to use blacklist logic
-	BLACKLIST_POLICY PolicyType = 1
+	// WhitelistPolicy declare a policy
+	// to use whitelist logic.
+	WhitelistPolicy PolicyType = 0
+	// BlacklistPolicy declare a policy
+	// to use blacklist logic.
+	BlacklistPolicy PolicyType = 1
 )
 
 // Policy handles policy checks
-// based on configuration
+// based on configuration.
 type Policy struct {
-	policyType PolicyType
 	values     []string
+	policyType PolicyType
 }
 
-// Allow check if a value is allowed
+// Allow check if a value is allowed.
 func (p *Policy) Allow(value string) bool {
 	for _, policyValue := range p.values {
 		if policyValue == value {
-			return p.policyType == WHITELIST_POLICY
+			return p.policyType == WhitelistPolicy
 		}
 	}
 
-	return p.policyType == BLACKLIST_POLICY
+	return p.policyType == BlacklistPolicy
 }
 
-// NewPolicy create a new policy instance with given arguments
+// NewPolicy create a new policy instance with given arguments.
 func NewPolicy(policyType PolicyType, values ...string) *Policy {
 	return &Policy{
 		policyType: policyType,

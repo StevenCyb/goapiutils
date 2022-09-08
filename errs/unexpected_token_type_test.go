@@ -8,6 +8,8 @@ import (
 )
 
 func TestErrUnexpectedTokenTypeMessage(t *testing.T) {
+	t.Parallel()
+
 	pos := 42
 	key1 := "abc"
 	key2 := "abc"

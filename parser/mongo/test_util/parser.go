@@ -12,12 +12,16 @@ type Parser interface {
 }
 
 func ExecuteSuccessTest(t *testing.T, parser Parser, query string, expect bson.D) {
+	t.Helper()
+
 	actual, err := parser.Parse(query)
 	require.NoError(t, err)
 	require.Equal(t, expect, actual)
 }
 
 func ExecuteFailedTest(t *testing.T, parser Parser, query string, expectedError error) {
+	t.Helper()
+
 	_, err := parser.Parse(query)
 	require.Equal(t, expectedError, err)
 }
