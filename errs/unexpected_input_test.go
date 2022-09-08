@@ -8,7 +8,9 @@ import (
 )
 
 func TestErrUnexpectedInput(t *testing.T) {
-	key := "abc"
+	t.Parallel()
+
+	key := "c"
 	require.Equal(t,
 		fmt.Sprintf(errUnexpectedInputMessage, key),
 		NewErrUnexpectedInput(key).Error(),

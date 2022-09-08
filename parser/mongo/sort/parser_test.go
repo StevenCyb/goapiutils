@@ -1,3 +1,4 @@
+// nolint:funlen
 package sort
 
 import (
@@ -8,13 +9,18 @@ import (
 	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
 	"github.com/StevenCyb/goquery/tokenizer"
 	"github.com/stretchr/testify/require"
-
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestParsing(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Query", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("WithEmptyQuery_Success", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteSuccessTest(t,
 				NewParser(nil),
 				"",
@@ -23,6 +29,8 @@ func TestParsing(t *testing.T) {
 		})
 
 		t.Run("WithSingleAscCriteria_Success", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteSuccessTest(t,
 				NewParser(nil),
 				"name=asc",
@@ -36,6 +44,8 @@ func TestParsing(t *testing.T) {
 		})
 
 		t.Run("WithSingleDescCriteria_Success", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteSuccessTest(t,
 				NewParser(nil),
 				"name=desc",
@@ -49,6 +59,8 @@ func TestParsing(t *testing.T) {
 		})
 
 		t.Run("WithMultipleSortingCriteria_Success", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteSuccessTest(t,
 				NewParser(nil),
 				"firstName=asc,age=desc, something = asc",
@@ -61,6 +73,8 @@ func TestParsing(t *testing.T) {
 		})
 
 		t.Run("WithUnknownLiteral_Fail", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteFailedTest(t,
 				NewParser(nil),
 				"firstName=?",
@@ -68,6 +82,8 @@ func TestParsing(t *testing.T) {
 			)
 		})
 		t.Run("WithUnexpectedSeparator_Fail", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteFailedTest(t,
 				NewParser(nil),
 				"firstName=asc+lastName=asc",
@@ -77,19 +93,25 @@ func TestParsing(t *testing.T) {
 	})
 
 	t.Run("WithPolicy", func(t *testing.T) {
-		t.Run("WithAllowedFieldnames_Success", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("WithAllowedFieldName_Success", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteSuccessTest(t,
 				NewParser(
-					tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "a", "b")),
+					tokenizer.NewPolicy(tokenizer.WhitelistPolicy, "a", "b")),
 				"a=asc,b=asc",
 				bson.D{bson.E{Key: "a", Value: 1}, bson.E{Key: "b", Value: 1}},
 			)
 		})
 
-		t.Run("WithDisallowedFieldnames_Fail", func(t *testing.T) {
+		t.Run("WithDisallowedFieldName_Fail", func(t *testing.T) {
+			t.Parallel()
+
 			testutil.ExecuteFailedTest(t,
 				NewParser(
-					tokenizer.NewPolicy(tokenizer.WHITELIST_POLICY, "a", "b")),
+					tokenizer.NewPolicy(tokenizer.WhitelistPolicy, "a", "b")),
 				"a=asc,b=desc,c=desc",
 				errs.NewErrPolicyViolation("c"),
 			)
@@ -98,22 +120,30 @@ func TestParsing(t *testing.T) {
 }
 
 func TestInterpretation(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	server := testutil.NewStrikemongoServer(t)
-	defer server.Stop()
 	mongoClient, collection, database := testutil.NewClientWithCollection(t, server)
-	defer mongoClient.Disconnect(ctx)
-	defer database.Drop(ctx)
+
+	// nolint:errcheck
+	t.Cleanup(func() {
+		server.Stop()
+		mongoClient.Disconnect(ctx)
+		database.Drop(ctx)
+	})
 
 	items := []testutil.DummyDoc{
-		{FirstName: "Max", LatsName: "Muster", Gender: "male", Age: 52},
-		{FirstName: "Alexa", LatsName: "Amaizon", Gender: "female", Age: 22},
-		{FirstName: "Tina", LatsName: "Someone", Gender: "female", Age: 33},
-		{FirstName: "Samal", LatsName: "Someone", Gender: "male", Age: 26},
+		{FirstName: "Max", LastName: "Muster", Gender: "male", Age: 52},
+		{FirstName: "Alexa", LastName: "Amaizon", Gender: "female", Age: 22},
+		{FirstName: "Tina", LastName: "Someone", Gender: "female", Age: 33},
+		{FirstName: "Samal", LastName: "Someone", Gender: "male", Age: 26},
 	}
 	testutil.Populate(t, collection, items)
 
 	t.Run("SortByName_Success", func(t *testing.T) {
+		t.Parallel()
+
 		parser := NewParser(nil)
 		sort, err := parser.Parse(`first_name=asc`)
 		require.NoError(t, err)
@@ -122,6 +152,8 @@ func TestInterpretation(t *testing.T) {
 	})
 
 	t.Run("SortByGenderAscAndAgeDesc_Success", func(t *testing.T) {
+		t.Parallel()
+
 		parser := NewParser(nil)
 		sort, err := parser.Parse(`gender=asc,age=desc`)
 		require.NoError(t, err)

@@ -1,7 +1,6 @@
 package subset
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -9,45 +8,46 @@ import (
 	"github.com/StevenCyb/goquery/tokenizer"
 )
 
-// Types that are used in this parser
+// Types that are used in this parser.
 const (
-	TYPE_SKIP           tokenizer.Type = "SKIP"
-	TYPE_JOIN           tokenizer.Type = ","
-	TYPE_PATH_SEPARATOR tokenizer.Type = "."
-	TYPE_ASSIGNMENT     tokenizer.Type = "ASSIGNMENT"
-	TYPE_FIELD_NAME     tokenizer.Type = "FIELD_NAME"
+	SkipType          tokenizer.Type = "SKIP"
+	JoinType          tokenizer.Type = ","
+	PathSeparatorType tokenizer.Type = "."
+	AssignmentType    tokenizer.Type = "ASSIGNMENT"
+	FieldNameType     tokenizer.Type = "FIELD_NAME"
 )
 
+// nolint:gochecknoglobals
 // specialEncode is the map for encoding
-// a list of special characters
+// a list of special characters.
 var specialEncode = map[string]string{
 	`,`: "%5C%2C",
 	` `: "%20",
 	`=`: "%5C%3D",
 }
 
-// NewParser creates a new parser
+// NewParser creates a new parser.
 func NewParser() *Parser {
 	return &Parser{}
 }
 
-// Parser provides the logic to parse
-// rsql statements
+// Parser provides the logic to parse rsql statements.
 type Parser struct {
 	tokenizer *tokenizer.Tokenizer
 	lookahead *tokenizer.Token
 }
 
-// eat return a token with expected type
+// eat return a token with expected type.
 func (p *Parser) eat(tokenType tokenizer.Type) (*tokenizer.Token, error) {
 	token := p.lookahead
 
 	if token == nil {
 		return nil, errs.NewErrUnexpectedInputEnd(tokenType.String())
 	}
+
 	if token.Type != tokenType {
 		return nil, errs.NewErrUnexpectedTokenType(
-			p.tokenizer.GetCursorPostion(),
+			p.tokenizer.GetCursorPosition(),
 			token.Type.String(),
 			tokenType.String(),
 		)
@@ -55,11 +55,14 @@ func (p *Parser) eat(tokenType tokenizer.Type) (*tokenizer.Token, error) {
 
 	var err error
 	p.lookahead, err = p.tokenizer.GetNextToken()
-	return token, err
+
+	return token, err // nolint:wrapcheck
 }
 
-// Parse a given query
+// Parse a given query.
 func (p *Parser) Parse(query string, fullObject interface{}) (interface{}, error) {
+	var err error
+
 	if query == "" {
 		return fullObject, nil
 	}
@@ -70,32 +73,33 @@ func (p *Parser) Parse(query string, fullObject interface{}) (interface{}, error
 
 	p.tokenizer = tokenizer.NewTokenizer(
 		query,
-		TYPE_SKIP, TYPE_SKIP,
+		SkipType, SkipType,
 		[]*tokenizer.Spec{
-			tokenizer.NewSpec(`^\s+`, TYPE_SKIP),
-			tokenizer.NewSpec(`^,`, TYPE_JOIN),
-			tokenizer.NewSpec(`^\.`, TYPE_PATH_SEPARATOR),
-			tokenizer.NewSpec(`^=`, TYPE_ASSIGNMENT),
-			tokenizer.NewSpec(`^[^\.,=]*`, TYPE_FIELD_NAME),
+			tokenizer.NewSpec(`^\s+`, SkipType),
+			tokenizer.NewSpec(`^,`, JoinType),
+			tokenizer.NewSpec(`^\.`, PathSeparatorType),
+			tokenizer.NewSpec(`^=`, AssignmentType),
+			tokenizer.NewSpec(`^[^\.,=]*`, FieldNameType),
 		},
 		nil,
 	)
 
-	var err error
 	p.lookahead, err = p.tokenizer.GetNextToken()
 	if err != nil {
-		return nil, err
+		return nil, err // nolint:wrapcheck
 	}
 
 	subsetObject := map[string]interface{}{}
 	err = p.expression(reflect.ValueOf(fullObject), &subsetObject)
+
 	return subsetObject, err
 }
 
-/**
+/*
  * <expression>
  * 	: <subset_spec>
  * 	| <subset_spec> ',' <expression>
+ * .
  */
 func (p *Parser) expression(object reflect.Value, subsetObject *map[string]interface{}) error {
 	err := p.subsetSpec(object, subsetObject)
@@ -103,8 +107,8 @@ func (p *Parser) expression(object reflect.Value, subsetObject *map[string]inter
 		return err
 	}
 
-	if p.tokenizer.HasMoreTokens() && p.lookahead.Type == TYPE_JOIN {
-		_, err = p.eat(TYPE_JOIN)
+	if p.tokenizer.HasMoreTokens() && p.lookahead.Type == JoinType {
+		_, err = p.eat(JoinType)
 		if err != nil {
 			return err
 		}
@@ -115,17 +119,20 @@ func (p *Parser) expression(object reflect.Value, subsetObject *map[string]inter
 	return nil
 }
 
-/**
+/*
  * <subset_spec>
  * 	: <field_name> '=' <field_name>
  *	| <field_name> "." <subset_spec>
+ * .
  */
 func (p *Parser) subsetSpec(object reflect.Value, subsetObject *map[string]interface{}) error {
+	var newObject reflect.Value
+
 	if p.lookahead == nil {
-		return errs.NewErrUnexpectedInputEnd(TYPE_FIELD_NAME.String())
+		return errs.NewErrUnexpectedInputEnd(FieldNameType.String())
 	}
 
-	fieldNameToken, err := p.eat(TYPE_FIELD_NAME)
+	fieldNameToken, err := p.eat(FieldNameType)
 	if err != nil {
 		return err
 	}
@@ -133,51 +140,50 @@ func (p *Parser) subsetSpec(object reflect.Value, subsetObject *map[string]inter
 	if object.IsNil() {
 		return nil
 	}
-	// if object.Kind() == reflect.Interface {
-	// 	object = reflect.TypeOf(object)
-	// }
-	var newObject reflect.Value
+
 	if object.Kind() == reflect.Map {
 		for _, key := range object.MapKeys() {
 			if key.String() == fieldNameToken.Value {
 				newObject = object.MapIndex(key)
+
 				break
 			}
 		}
 	}
-	fmt.Printf("%s : [%v] %+v -> %v\n", // TODO
-		fieldNameToken.Value,
-		object.Kind(),
-		object.Interface(),
-		newObject)
+
 	if reflect.ValueOf(newObject).IsZero() {
 		return nil
 	}
 
-	if p.lookahead != nil && p.lookahead.Type == TYPE_PATH_SEPARATOR {
-		_, err := p.eat(TYPE_PATH_SEPARATOR)
-		if err != nil {
-			return err
-		}
+	if p.lookahead != nil {
+		switch p.lookahead.Type {
+		case PathSeparatorType:
+			_, err := p.eat(PathSeparatorType)
+			if err != nil {
+				return err
+			}
 
-		if newObject.Kind() == reflect.Interface {
-			return p.subsetSpec(newObject.Elem(), subsetObject)
-		}
-		return p.subsetSpec(newObject, subsetObject)
-	} else if p.lookahead != nil && p.lookahead.Type == TYPE_ASSIGNMENT {
-		_, err := p.eat(TYPE_ASSIGNMENT)
-		if err != nil {
-			return err
-		}
+			if newObject.Kind() == reflect.Interface {
+				return p.subsetSpec(newObject.Elem(), subsetObject)
+			}
 
-		newFieldNameToken, err := p.eat(TYPE_FIELD_NAME)
-		if err != nil {
-			return err
-		}
+			return p.subsetSpec(newObject, subsetObject)
+		case AssignmentType:
+			_, err := p.eat(AssignmentType)
+			if err != nil {
+				return err
+			}
 
-		(*subsetObject)[newFieldNameToken.Value] = newObject.Interface()
-		return nil
+			newFieldNameToken, err := p.eat(FieldNameType)
+			if err != nil {
+				return err
+			}
+
+			(*subsetObject)[newFieldNameToken.Value] = newObject.Interface()
+
+			return nil
+		}
 	}
 
-	return errs.NewErrUnexpectedInputEnd(TYPE_ASSIGNMENT.String())
+	return errs.NewErrUnexpectedInputEnd(AssignmentType.String())
 }

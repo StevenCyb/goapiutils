@@ -23,10 +23,13 @@ const mongoVersion = "4.2.0"
 // to stop the server after testing
 // `defer mongoServer.Stop()`.
 func NewStrikemongoServer(t *testing.T) *strikememongo.Server {
+	t.Helper()
+
+	startupTimeoutSeconds := 30
 	options := &strikememongo.Options{
 		ShouldUseReplica: false,
 		LogLevel:         strikememongolog.LogLevelSilent,
-		StartupTimeout:   30 * time.Second,
+		StartupTimeout:   time.Duration(startupTimeoutSeconds) * time.Second,
 	}
 
 	if mongoBin := os.Getenv("MONGO_BIN"); mongoBin != "" {
@@ -43,11 +46,16 @@ func NewStrikemongoServer(t *testing.T) *strikememongo.Server {
 
 func randomID() string {
 	id := uuid.New()
+
 	return id.String()
 }
 
-// NewClientWithCollection create a new mongo client for given strikemongo
-func NewClientWithCollection(t *testing.T, mongoDB *strikememongo.Server) (*mongo.Client, *mongo.Collection, *mongo.Database) {
+// NewClientWithCollection create a new mongo client for given strikemongo.
+func NewClientWithCollection(
+	t *testing.T, mongoDB *strikememongo.Server,
+) (*mongo.Client, *mongo.Collection, *mongo.Database) {
+	t.Helper()
+
 	client, err := mongo.Connect(
 		context.Background(),
 		options.Client().ApplyURI(mongoDB.URIWithRandomDB()))
@@ -59,16 +67,17 @@ func NewClientWithCollection(t *testing.T, mongoDB *strikememongo.Server) (*mong
 	return client, collection, database
 }
 
-// DummyDoc is a simple dummy doc for
-// mongo tests
+// DummyDoc is a simple dummy doc for mongo tests.
 type DummyDoc struct {
 	FirstName string `bson:"first_name"`
-	LatsName  string `bson:"last_name"`
+	LastName  string `bson:"last_name"`
 	Gender    string `bson:"gender"`
 	Age       int    `bson:"age"`
 }
 
 func Populate(t *testing.T, collection *mongo.Collection, items []DummyDoc) {
+	t.Helper()
+
 	itemsInterface := []interface{}{}
 	for _, item := range items {
 		itemsInterface = append(itemsInterface, item)
@@ -82,10 +91,13 @@ func Populate(t *testing.T, collection *mongo.Collection, items []DummyDoc) {
 }
 
 func FindCompare(t *testing.T, collection *mongo.Collection, filter interface{}, sort interface{}, items ...DummyDoc) {
+	t.Helper()
+
 	opts := &options.FindOptions{}
 	if sort != nil {
 		opts.Sort = sort
 	}
+
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -93,6 +105,7 @@ func FindCompare(t *testing.T, collection *mongo.Collection, filter interface{},
 	ctx := context.TODO()
 	cur, err := collection.Find(ctx, filter, opts)
 	require.NoError(t, err)
+
 	defer cur.Close(ctx)
 
 	dbItems := []DummyDoc{}
