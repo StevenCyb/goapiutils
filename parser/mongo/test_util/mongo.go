@@ -75,17 +75,12 @@ type DummyDoc struct {
 	Age       int    `bson:"age"`
 }
 
-func Populate(t *testing.T, collection *mongo.Collection, items []DummyDoc) {
+func Populate(t *testing.T, collection *mongo.Collection, items []interface{}) {
 	t.Helper()
-
-	itemsInterface := []interface{}{}
-	for _, item := range items {
-		itemsInterface = append(itemsInterface, item)
-	}
 
 	_, err := collection.InsertMany(
 		context.Background(),
-		itemsInterface,
+		items,
 	)
 	require.NoError(t, err)
 }
