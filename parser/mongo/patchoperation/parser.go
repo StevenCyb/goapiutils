@@ -28,7 +28,7 @@ func (p Parser) Parse(operationSpecs ...OperationSpec) (bson.A, error) {
 			}
 
 			if !policy.Test(operationSpec) {
-				return nil, errs.NewErrPolicyViolation(policy.GetName())
+				return nil, errs.NewErrPolicyViolation(policy.GetDetails())
 			}
 		}
 	}

@@ -129,7 +129,7 @@ func TestInvalidOperation(t *testing.T) {
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Name: name, Path: path}},
+			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
 		errs.NewErrUnexpectedInput(OperationSpec{}),
 		OperationSpec{},
@@ -144,7 +144,7 @@ func TestPolicyViolation(t *testing.T) {
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Name: name, Path: path}},
+			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
 		errs.NewErrPolicyViolation(name),
 		OperationSpec{Operation: RemoveOperation, Path: path},

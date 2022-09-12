@@ -33,9 +33,9 @@ func TestDisallowPathPolicy(t *testing.T) {
 	name := "Name"
 	forbiddenPath := Path("/user/password")
 	allowedPath := Path("/user/username")
-	policy := DisallowPathPolicy{Name: name, Path: forbiddenPath}
+	policy := DisallowPathPolicy{Details: name, Path: forbiddenPath}
 
-	require.Equal(t, name, policy.Name)
+	require.Equal(t, name, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: forbiddenPath}))
 	require.True(t, policy.Test(OperationSpec{Path: allowedPath}))
 }
@@ -47,10 +47,10 @@ func TestDisallowOperationOnPathPolicy(t *testing.T) {
 	path := Path("/user/username")
 	notEffected := Path("/user/disabled")
 	policy := DisallowOperationOnPathPolicy{
-		Name: name, Path: path, Operation: RemoveOperation,
+		Details: name, Path: path, Operation: RemoveOperation,
 	}
 
-	require.Equal(t, name, policy.Name)
+	require.Equal(t, name, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Operation: RemoveOperation}))
@@ -63,10 +63,10 @@ func TestForceTypeOnPathPolicy(t *testing.T) {
 	path := Path("/product/price")
 	notEffected := Path("/product/tag")
 	policy := ForceTypeOnPathPolicy{
-		Name: name, Path: path, Kind: reflect.Float64,
+		Details: name, Path: path, Kind: reflect.Float64,
 	}
 
-	require.Equal(t, name, policy.Name)
+	require.Equal(t, name, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Value: "not a price"}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Value: 6.99}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Value: "vegetable"}))
@@ -79,11 +79,11 @@ func TestForceRegexMatchPolicy(t *testing.T) {
 	path := Path("/product/version")
 	notEffected := Path("/product/tag")
 	policy := ForceRegexMatchPolicy{
-		Name: name, Path: path,
+		Details: name, Path: path,
 		Expression: *regexp.MustCompile(`^v[0-9]*\.[0-9]*\.[0-9]*$`),
 	}
 
-	require.Equal(t, name, policy.Name)
+	require.Equal(t, name, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Value: "va.0.0"}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Value: "v0.3.7"}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Value: "backend"}))

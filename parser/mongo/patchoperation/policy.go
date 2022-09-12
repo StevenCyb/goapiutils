@@ -8,19 +8,19 @@ import (
 
 // Policy specifies the interface for an policy.
 type Policy interface {
-	GetName() string
+	GetDetails() string
 	Test(operationSpec OperationSpec) bool
 }
 
 // DisallowPathPolicy specifies a path that is not allowed.
 type DisallowPathPolicy struct {
-	Name string
-	Path Path
+	Details string
+	Path    Path
 }
 
-// GetName returns the name of this policy.
-func (d DisallowPathPolicy) GetName() string {
-	return d.Name
+// GetDetails returns the name of this policy.
+func (d DisallowPathPolicy) GetDetails() string {
+	return d.Details
 }
 
 // Test if given operation specification is valid or not.
@@ -30,14 +30,14 @@ func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
 
 // Test if given operation specification is valid or not.
 type DisallowOperationOnPathPolicy struct {
-	Name      string
+	Details   string
 	Path      Path
 	Operation Operation
 }
 
-// GetName returns the name of this policy.
-func (d DisallowOperationOnPathPolicy) GetName() string {
-	return d.Name
+// GetDetails returns the name of this policy.
+func (d DisallowOperationOnPathPolicy) GetDetails() string {
+	return d.Details
 }
 
 // Test if given operation specification is valid or not.
@@ -51,14 +51,14 @@ func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
 
 // ForceTypeOnPathPolicy forces the value of a specif path to be from given type.
 type ForceTypeOnPathPolicy struct {
-	Name string
-	Path Path
-	Kind reflect.Kind
+	Details string
+	Path    Path
+	Kind    reflect.Kind
 }
 
-// GetName returns the name of this policy.
-func (f ForceTypeOnPathPolicy) GetName() string {
-	return f.Name
+// GetDetails returns the name of this policy.
+func (f ForceTypeOnPathPolicy) GetDetails() string {
+	return f.Details
 }
 
 // Test if given operation specification is valid or not.
@@ -72,14 +72,14 @@ func (f ForceTypeOnPathPolicy) Test(operationSpec OperationSpec) bool {
 
 // ForceRegexMatchPolicy forces the value of a specif path to match expression.
 type ForceRegexMatchPolicy struct {
-	Name       string
+	Details    string
 	Path       Path
 	Expression regexp.Regexp
 }
 
-// GetName returns the name of this policy.
-func (m ForceRegexMatchPolicy) GetName() string {
-	return m.Name
+// GetDetails returns the name of this policy.
+func (m ForceRegexMatchPolicy) GetDetails() string {
+	return m.Details
 }
 
 // Test if given operation specification is valid or not.
