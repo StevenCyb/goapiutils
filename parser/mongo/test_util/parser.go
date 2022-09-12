@@ -7,11 +7,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type Parser interface {
+type TextParser interface {
 	Parse(query string) (bson.D, error)
 }
 
-func ExecuteSuccessTest(t *testing.T, parser Parser, query string, expect bson.D) {
+func ExecuteSuccessTest(t *testing.T, parser TextParser, query string, expect bson.D) {
 	t.Helper()
 
 	actual, err := parser.Parse(query)
@@ -19,7 +19,7 @@ func ExecuteSuccessTest(t *testing.T, parser Parser, query string, expect bson.D
 	require.Equal(t, expect, actual)
 }
 
-func ExecuteFailedTest(t *testing.T, parser Parser, query string, expectedError error) {
+func ExecuteFailedTest(t *testing.T, parser TextParser, query string, expectedError error) {
 	t.Helper()
 
 	_, err := parser.Parse(query)

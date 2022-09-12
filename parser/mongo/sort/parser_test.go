@@ -139,7 +139,13 @@ func TestInterpretation(t *testing.T) {
 		{FirstName: "Tina", LastName: "Someone", Gender: "female", Age: 33},
 		{FirstName: "Samal", LastName: "Someone", Gender: "male", Age: 26},
 	}
-	testutil.Populate(t, collection, items)
+
+	itemsInterface := []interface{}{}
+	for _, item := range items {
+		itemsInterface = append(itemsInterface, item)
+	}
+
+	testutil.Populate(t, collection, itemsInterface)
 
 	t.Run("SortByName_Success", func(t *testing.T) {
 		t.Parallel()
