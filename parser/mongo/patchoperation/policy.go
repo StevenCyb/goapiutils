@@ -28,7 +28,7 @@ func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
 	return operationSpec.Path != d.Path
 }
 
-// Test if given operation specification is valid or not.
+// DisallowOperationOnPathPolicy disallows specified operation on path.
 type DisallowOperationOnPathPolicy struct {
 	Details   string
 	Path      Path

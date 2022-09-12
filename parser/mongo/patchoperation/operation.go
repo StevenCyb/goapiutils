@@ -15,7 +15,7 @@ const (
 	// MoveOperation removes the value at a specified location and
 	// adds it to the target location. Requires `from` and `path`.
 	MoveOperation Operation = "move"
-	// CopyOperation copies the value at a specified location to the
+	// CopyOperation copies the value from a specified location to the
 	// target location. Requires `from` and `path`.
 	CopyOperation Operation = "copy"
 )
