@@ -13,7 +13,7 @@ There are two ways to sort:
 ### For API
 ```golang
 import (
-	"github.com/StevenCyb/goquery/mongo/sort"
+	"github.com/StevenCyb/goquery/parser/mongo/sort"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

@@ -23,11 +23,18 @@ Additionally, simple rules can be set:
 # How to
 ## Basic usage
 ```go
-  var operations []OperationSpec
-  err = json.Unmarshal(bodyBytes, &operations)
+  import (
+    "github.com/StevenCyb/goquery/parser/mongo/patchoperation"
+
+    "go.mongodb.org/mongo-driver/mongo/options"
+  )
   // ...
 
-  parser := Parser{}
+  var operations []patchoperation.OperationSpec
+  err = json.NewDecoder(req.Body).Decode(&operations)
+  // ...
+
+  parser := patchoperation.NewParser()
   query, err := parser.Parse(operations...)
   // ...
 
@@ -36,8 +43,8 @@ Additionally, simple rules can be set:
 ```
 ## Policy usage
 ```go
-  parser := Parser{
-    []Policy{DisallowPathPolicy{Name: "illegal ID modification", Path: "_id"}},
-    []Policy{ForceTypeOnPathPolicy{Name: "age as number", Path: "user.age", Kind: reflect.Int64}},
-  },
+  parser := patchoperation.NewParser(
+    DisallowPathPolicy{Details: "illegal ID modification", Path: "_id"},
+    ForceTypeOnPathPolicy{Details: "age as number", Path: "user.age", Kind: reflect.Int64},
+  ),
 ```
