@@ -17,9 +17,10 @@ const (
 	FieldNameType     tokenizer.Type = "FIELD_NAME"
 )
 
-// nolint:gochecknoglobals
 // specialEncode is the map for encoding
 // a list of special characters.
+//
+//nolint:gochecknoglobals
 var specialEncode = map[string]string{
 	`,`: "%5C%2C",
 	` `: "%20",
@@ -56,7 +57,7 @@ func (p *Parser) eat(tokenType tokenizer.Type) (*tokenizer.Token, error) {
 	var err error
 	p.lookahead, err = p.tokenizer.GetNextToken()
 
-	return token, err // nolint:wrapcheck
+	return token, err //nolint:wrapcheck
 }
 
 // Parse a given query.
@@ -86,7 +87,7 @@ func (p *Parser) Parse(query string, fullObject interface{}) (interface{}, error
 
 	p.lookahead, err = p.tokenizer.GetNextToken()
 	if err != nil {
-		return nil, err // nolint:wrapcheck
+		return nil, err //nolint:wrapcheck
 	}
 
 	subsetObject := map[string]interface{}{}

@@ -29,7 +29,7 @@ func ExecuteFailedTest(t *testing.T, parser Parser, expectedError error, operati
 
 // DummyDoc is a simple dummy doc for mongo tests.
 type DummyDoc struct {
-	ID string  `bson:"_id"` // nolint:tagliatelle
+	ID string  `bson:"_id"` //nolint:tagliatelle
 	A  string  `bson:"a"`
 	B  string  `bson:"b"`
 	D  []int   `bson:"d"`
@@ -158,7 +158,7 @@ func TestInterpretation(t *testing.T) {
 	server := testutil.NewStrikemongoServer(t)
 	mongoClient, collection, database := testutil.NewClientWithCollection(t, server)
 
-	// nolint:errcheck
+	//nolint:errcheck
 	t.Cleanup(func() {
 		server.Stop()
 		mongoClient.Disconnect(ctx)

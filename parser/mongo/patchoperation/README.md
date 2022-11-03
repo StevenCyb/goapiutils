@@ -23,12 +23,12 @@ Additionally, simple rules can be set:
 # How to
 ## Basic usage
 ```go
-  import (
-    "github.com/StevenCyb/goquery/parser/mongo/patchoperation"
+import (
+  "github.com/StevenCyb/goquery/parser/mongo/patchoperation"
 
-    "go.mongodb.org/mongo-driver/mongo/options"
-  )
-  // ...
+  "go.mongodb.org/mongo-driver/mongo/options"
+)
+// ...
 
   var operations []patchoperation.OperationSpec
   err = json.NewDecoder(req.Body).Decode(&operations)

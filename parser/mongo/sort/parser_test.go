@@ -1,4 +1,4 @@
-// nolint:funlen
+//nolint:funlen
 package sort
 
 import (
@@ -126,7 +126,7 @@ func TestInterpretation(t *testing.T) {
 	server := testutil.NewStrikemongoServer(t)
 	mongoClient, collection, database := testutil.NewClientWithCollection(t, server)
 
-	// nolint:errcheck
+	//nolint:errcheck
 	t.Cleanup(func() {
 		server.Stop()
 		mongoClient.Disconnect(ctx)
