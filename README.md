@@ -4,8 +4,15 @@
 ![GitHub](https://img.shields.io/github/license/StevenCyb/goquery)
 
 This is a collection of query parser that can be used for query parsing e.g. for API's.
-Available query-parsers are:
-- [RSQL parser for MongoDB find queries](parser/mongo/rsql/README.md)
-- [Parser for MongoDB sort options](parser/mongo/sort/README.md)
-- [Patch operations for Mongo documents](parser/mongo/patchoperation/README.md)
-- [Parser for subset query](parser/object/subset/README.md)
+## Available query-parsers are:
+- MongoDB
+  - [RSQL parser for MongoDB find queries](parser/mongo/rsql/README.md)
+  - [Parser for MongoDB sort options](parser/mongo/sort/README.md)
+  - [Patch operations for Mongo documents](parser/mongo/patchoperation/README.md)
+- Object
+  - [Parser for subset query](parser/object/subset/README.md)
+
+## Available extractors
+- HTTP-Request Parameter
+  - [Extract query value](extractor/httprequest/parameter/README.md#query-parameter)
+  - [Extract patch value](extractor/httprequest/parameter/README.md#path-parameter)
