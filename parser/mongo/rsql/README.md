@@ -36,7 +36,7 @@ A more accurate example could be a binary XOR (only `a` or `b` is `1`) `(a==0;b=
 ### For API
 ```golang
 import (
-	"github.com/StevenCyb/goquery/mongo/rsql"
+	"github.com/StevenCyb/goquery/parser/mongo/rsql"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
