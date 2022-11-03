@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/StevenCyb/goquery/errs"
+	"github.com/StevenCyb/goapiutils/errs"
 	"github.com/stretchr/testify/require"
 )
 

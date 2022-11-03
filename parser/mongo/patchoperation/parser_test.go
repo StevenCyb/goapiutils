@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/StevenCyb/goquery/errs"
-	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
+	"github.com/StevenCyb/goapiutils/errs"
+	testutil "github.com/StevenCyb/goapiutils/parser/mongo/test_util"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

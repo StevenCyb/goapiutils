@@ -13,7 +13,7 @@ There are two ways to sort:
 ### For API
 ```golang
 import (
-	"github.com/StevenCyb/goquery/parser/mongo/sort"
+	"github.com/StevenCyb/goapiutils/parser/mongo/sort"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -38,8 +38,8 @@ This parser supports two types of policies:
 2) `BLACKLIST_POLICY` -> allow everything except given fields
 ```golang
 import (
-	"github.com/StevenCyb/goquery/mongo/sort"
-	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/StevenCyb/goapiutils/mongo/sort"
+	"github.com/StevenCyb/goapiutils/tokenizer"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

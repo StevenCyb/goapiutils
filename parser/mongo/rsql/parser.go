@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/StevenCyb/goquery/errs"
-	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/StevenCyb/goapiutils/errs"
+	"github.com/StevenCyb/goapiutils/tokenizer"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 )

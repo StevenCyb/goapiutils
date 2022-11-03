@@ -7,7 +7,7 @@ In addition, `Option` provides additional features explained [below](#parameter-
 
 ```go
 import (
-  "github.com/StevenCyb/goquery/extractor/httprequest/parameter"
+  "github.com/StevenCyb/goapiutils/extractor/httprequest/parameter"
 )
 // ...
 
@@ -23,7 +23,7 @@ In addition, `Option` provides additional features explained [below](#parameter-
 
 ```go
 import (
-  "github.com/StevenCyb/goquery/extractor/httprequest/parameter"
+  "github.com/StevenCyb/goapiutils/extractor/httprequest/parameter"
 )
 // ...
 

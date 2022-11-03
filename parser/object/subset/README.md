@@ -11,7 +11,7 @@ You can concatenate fields to a subset with the separator `,` e.g. `contact.emai
 ## Example
 ```golang
 import (
-	"github.com/StevenCyb/goquery/object/subset"
+	"github.com/StevenCyb/goapiutils/object/subset"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

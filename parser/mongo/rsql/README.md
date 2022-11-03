@@ -36,7 +36,7 @@ A more accurate example could be a binary XOR (only `a` or `b` is `1`) `(a==0;b=
 ### For API
 ```golang
 import (
-	"github.com/StevenCyb/goquery/parser/mongo/rsql"
+	"github.com/StevenCyb/goapiutils/parser/mongo/rsql"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -59,8 +59,8 @@ This parser supports two types of policies:
 2) `BLACKLIST_POLICY` -> allow everything except given fields
 ```golang
 import (
-	"github.com/StevenCyb/goquery/mongo/rsql"
-	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/StevenCyb/goapiutils/mongo/rsql"
+	"github.com/StevenCyb/goapiutils/tokenizer"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

@@ -1,7 +1,7 @@
 package tokenizer
 
 import (
-	"github.com/StevenCyb/goquery/errs"
+	"github.com/StevenCyb/goapiutils/errs"
 )
 
 // tokenizer that lazily pulls a token from a stream.
