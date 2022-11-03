@@ -15,8 +15,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+// ...
 
-func ListHandler(w http.ResponseWriter, r *http.Request) {
   subsetExpression := r.URL.Query().Get("subset")
 
   // ...
@@ -27,5 +27,4 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
   // ...
   
   json.NewEncoder(w).Encode(resultDataSubset)
-}
 ```

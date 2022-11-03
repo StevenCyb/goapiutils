@@ -27,7 +27,7 @@ func (t *Tokenizer) HasMoreTokens() bool {
 // GetNextToken obtains next token.
 func (t *Tokenizer) GetNextToken() (*Token, error) {
 	if !t.HasMoreTokens() {
-		return nil, nil // nolint:nilnil
+		return nil, nil //nolint:nilnil
 	}
 
 	part := t.query[t.cursor:]

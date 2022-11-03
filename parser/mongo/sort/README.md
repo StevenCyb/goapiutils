@@ -17,8 +17,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+// ...
 
-func ListHandler(w http.ResponseWriter, r *http.Request) {
   sortExpressionString := r.URL.Query().Get("sort")
 
   parser := sort.NewParser(nil)
@@ -31,7 +31,6 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
 
   coll.Find(r.Context(), filter, opts...)
   // ...
-}
 ```
 ### For API with policy
 This parser supports two types of policies:

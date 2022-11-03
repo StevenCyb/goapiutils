@@ -25,7 +25,7 @@ type OperationSpec struct {
 	From      Path        `json:"from"`
 	Path      Path        `json:"path"`
 	Value     interface{} `json:"value"`
-	Operation Operation   `json:"op"` // nolint:tagliatelle
+	Operation Operation   `json:"op"` //nolint:tagliatelle
 }
 
 // Valid check if operation is valid.

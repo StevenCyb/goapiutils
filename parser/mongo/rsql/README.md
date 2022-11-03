@@ -64,8 +64,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+// ...
 
-func ListHandler(w http.ResponseWriter, r *http.Request) {
   queryExpressionString := r.URL.Query().Get("query")
 
   parser := rsql.NewParser(
@@ -81,5 +81,4 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
 
   coll.Find(r.Context(), queryExpression)
   // ...
-}
 ```
