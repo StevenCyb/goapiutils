@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/StevenCyb/goapiutils/errs"
+	"github.com/StevenCyb/goapiutils/parser/errs"
 	testutil "github.com/StevenCyb/goapiutils/parser/mongo/test_util"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"

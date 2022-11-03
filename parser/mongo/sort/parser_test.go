@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/StevenCyb/goapiutils/errs"
+	"github.com/StevenCyb/goapiutils/parser/errs"
 	testutil "github.com/StevenCyb/goapiutils/parser/mongo/test_util"
-	"github.com/StevenCyb/goapiutils/tokenizer"
+	"github.com/StevenCyb/goapiutils/parser/tokenizer"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )

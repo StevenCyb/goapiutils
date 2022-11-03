@@ -3,7 +3,7 @@ package patchoperation
 import (
 	"reflect"
 
-	"github.com/StevenCyb/goapiutils/errs"
+	"github.com/StevenCyb/goapiutils/parser/errs"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
