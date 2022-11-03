@@ -24,7 +24,7 @@ Additionally, simple rules can be set:
 ## Basic usage
 ```go
 import (
-  "github.com/StevenCyb/goquery/parser/mongo/patchoperation"
+  "github.com/StevenCyb/goapiutils/parser/mongo/patchoperation"
 
   "go.mongodb.org/mongo-driver/mongo/options"
 )

@@ -1,4 +1,4 @@
-module github.com/StevenCyb/goquery
+module github.com/StevenCyb/goapiutils
 
 go 1.18
 

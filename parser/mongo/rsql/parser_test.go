@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/StevenCyb/goquery/errs"
-	testutil "github.com/StevenCyb/goquery/parser/mongo/test_util"
-	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/StevenCyb/goapiutils/parser/errs"
+	testutil "github.com/StevenCyb/goapiutils/parser/mongo/test_util"
+	"github.com/StevenCyb/goapiutils/parser/tokenizer"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )

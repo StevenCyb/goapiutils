@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/StevenCyb/goquery/errs"
-	"github.com/StevenCyb/goquery/tokenizer"
+	"github.com/StevenCyb/goapiutils/parser/errs"
+	"github.com/StevenCyb/goapiutils/parser/tokenizer"
 )
 
 // Types that are used in this parser.
