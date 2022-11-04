@@ -25,6 +25,7 @@
         "forbidigo",
         "forcetypeassert",
         "funlen",
+        "goapiutils",
         "gochecknoglobals",
         "gochecknoinits",
         "gocognit",

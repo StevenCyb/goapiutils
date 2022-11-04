@@ -410,6 +410,10 @@ func (p *Parser) comparison() (*bson.E, error) {
 	if err != nil {
 		return nil, err
 	}
+	
+	if p.lookahead == nil {
+		return nil, errs.NewErrUnexpectedInputEnd(FieldNameType.String())
+	}
 
 	key := keyToken.Value
 

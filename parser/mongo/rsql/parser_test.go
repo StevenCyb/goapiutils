@@ -23,6 +23,16 @@ func TestQueryParsingWithEmptyQuery_Success(t *testing.T) {
 	)
 }
 
+func TestQueryParsingWithInvalidQuery_Fail(t *testing.T) {
+	t.Parallel()
+
+	testutil.ExecuteFailedTest(t,
+		NewParser(nil),
+		"not_gonna_work",
+		errs.NewErrUnexpectedInputEnd(FieldNameType.String()),
+	)
+}
+
 func TestQueryParsingWithDifferentLiterals(t *testing.T) {
 	t.Parallel()
 
