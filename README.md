@@ -10,7 +10,7 @@ This is a collection of query parsers and extractors that can be used for for AP
 - MongoDB
   - [RSQL parser for MongoDB find queries](parser/mongo/rsql/README.md)
   - [Parser for MongoDB sort options](parser/mongo/sort/README.md)
-  - [Patch operations for Mongo documents](parser/mongo/patchoperation/README.md)
+  - [JSON Patch for MongoDB](parser/mongo/jsonpath/README.md)
 - Object
   - [Parser for subset query](parser/object/subset/README.md)
 

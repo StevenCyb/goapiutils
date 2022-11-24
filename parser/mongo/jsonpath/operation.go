@@ -1,4 +1,4 @@
-package patchoperation
+package jsonpath
 
 type Operation string
 
