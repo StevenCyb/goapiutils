@@ -92,6 +92,7 @@
         "unconvert",
         "Unmarshal",
         "unparam",
+        "userdetails",
         "varcheck",
         "varnamelen",
         "wastedassign",
