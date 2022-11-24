@@ -30,12 +30,12 @@ func TestPolicyInterface(t *testing.T) {
 func TestDisallowPathPolicy(t *testing.T) {
 	t.Parallel()
 
-	name := "Name"
+	details := "something"
 	forbiddenPath := Path("/user/password")
-	allowedPath := Path("/user/username")
-	policy := DisallowPathPolicy{Details: name, Path: forbiddenPath}
+	allowedPath := Path("/user/userdetails")
+	policy := DisallowPathPolicy{Details: details, Path: forbiddenPath}
 
-	require.Equal(t, name, policy.Details)
+	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: forbiddenPath}))
 	require.True(t, policy.Test(OperationSpec{Path: allowedPath}))
 }
@@ -43,14 +43,14 @@ func TestDisallowPathPolicy(t *testing.T) {
 func TestDisallowOperationOnPathPolicy(t *testing.T) {
 	t.Parallel()
 
-	name := "Name"
-	path := Path("/user/username")
+	details := "something"
+	path := Path("/user/userdetails")
 	notEffected := Path("/user/disabled")
 	policy := DisallowOperationOnPathPolicy{
-		Details: name, Path: path, Operation: RemoveOperation,
+		Details: details, Path: path, Operation: RemoveOperation,
 	}
 
-	require.Equal(t, name, policy.Details)
+	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Operation: RemoveOperation}))
@@ -59,14 +59,14 @@ func TestDisallowOperationOnPathPolicy(t *testing.T) {
 func TestForceTypeOnPathPolicy(t *testing.T) {
 	t.Parallel()
 
-	name := "Name"
+	details := "something"
 	path := Path("/product/price")
 	notEffected := Path("/product/tag")
 	policy := ForceTypeOnPathPolicy{
-		Details: name, Path: path, Kind: reflect.Float64,
+		Details: details, Path: path, Kind: reflect.Float64,
 	}
 
-	require.Equal(t, name, policy.Details)
+	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Value: "not a price"}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Value: 6.99}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Value: "vegetable"}))
@@ -75,15 +75,15 @@ func TestForceTypeOnPathPolicy(t *testing.T) {
 func TestForceRegexMatchPolicy(t *testing.T) {
 	t.Parallel()
 
-	name := "Name"
+	details := "something"
 	path := Path("/product/version")
 	notEffected := Path("/product/tag")
 	policy := ForceRegexMatchPolicy{
-		Details: name, Path: path,
+		Details: details, Path: path,
 		Expression: *regexp.MustCompile(`^v[0-9]*\.[0-9]*\.[0-9]*$`),
 	}
 
-	require.Equal(t, name, policy.Details)
+	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Value: "va.0.0"}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Value: "v0.3.7"}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Value: "backend"}))

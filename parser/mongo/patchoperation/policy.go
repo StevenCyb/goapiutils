@@ -78,15 +78,15 @@ type ForceRegexMatchPolicy struct {
 }
 
 // GetDetails returns the name of this policy.
-func (m ForceRegexMatchPolicy) GetDetails() string {
-	return m.Details
+func (f ForceRegexMatchPolicy) GetDetails() string {
+	return f.Details
 }
 
 // Test if given operation specification is valid or not.
-func (m ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
-	if operationSpec.Path != m.Path {
+func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
+	if operationSpec.Path != f.Path {
 		return true
 	}
 
-	return m.Expression.MatchString(fmt.Sprintf("%+v", operationSpec.Value))
+	return f.Expression.MatchString(fmt.Sprintf("%+v", operationSpec.Value))
 }
