@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 // Policy specifies the interface for an policy.
@@ -89,4 +90,52 @@ func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
 	}
 
 	return f.Expression.MatchString(fmt.Sprintf("%+v", operationSpec.Value))
+}
+
+// StrictPathPolicy forces path to be strictly one of. Use `*` key for any field name.
+type StrictPathPolicy struct {
+	Details string
+	Path    []Path
+}
+
+// GetDetails returns the name of this policy.
+func (s StrictPathPolicy) GetDetails() string {
+	return s.Details
+}
+
+// Test if given operation specification is valid or not.
+func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
+	for _, path := range s.Path {
+
+		if strings.Contains(string(path), "*") {
+			stringPath := []rune(path)
+			offset := 0
+
+			for i, char := range operationSpec.Path {
+				if i == len(operationSpec.Path)-1 && (i+offset) == len(stringPath)-1 {
+					return true
+				}
+
+				if stringPath[i+offset] == '*' {
+					if char != '.' {
+						offset--
+					} else {
+						offset++
+					}
+
+					continue
+				}
+
+				if stringPath[i+offset] != char {
+					break
+				}
+			}
+		}
+
+		if operationSpec.Path == path {
+			return true
+		}
+	}
+
+	return false
 }

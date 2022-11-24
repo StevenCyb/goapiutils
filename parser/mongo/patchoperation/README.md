@@ -13,12 +13,13 @@ There are five operations available:
 This features are supported for `MongoDB 4.2+`.
 
 Additionally, simple rules can be set:
-| Policy                          | Description                                                                   |
-|---------------------------------|----------------------------------------------------------|
-| `DisallowPathPolicy`            | specifies a path that is not allowed.                    |
-| `DisallowOperationOnPathPolicy` | disallows specified operation on path.                   |
-| `ForceTypeOnPathPolicy`         | forces the value of a specif path to be from given type. |
-| `ForceRegexMatchPolicy`         | forces the value of a specif path to match expression.   |
+| Policy                          | Description                                                           |
+|---------------------------------|-----------------------------------------------------------------------|
+| `DisallowPathPolicy`            | specifies a path that is not allowed.                                 |
+| `DisallowOperationOnPathPolicy` | disallows specified operation on path.                                |
+| `ForceTypeOnPathPolicy`         | forces the value of a specif path to be from given type.              |
+| `ForceRegexMatchPolicy`         | forces the value of a specif path to match expression.                |
+| `StrictPathPolicy`              | forces path to be strictly one of. Use `*` as key for any field name. |
 
 # How to
 ## Basic usage
