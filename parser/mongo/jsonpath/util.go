@@ -1,4 +1,4 @@
-package patchoperation
+package jsonpath
 
 import "regexp"
 

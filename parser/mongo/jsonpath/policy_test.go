@@ -1,5 +1,5 @@
 //nolint:goconst
-package patchoperation
+package jsonpath
 
 import (
 	"reflect"

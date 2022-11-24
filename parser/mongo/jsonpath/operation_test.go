@@ -1,5 +1,5 @@
 //nolint:dupl
-package patchoperation
+package jsonpath
 
 import (
 	"testing"
