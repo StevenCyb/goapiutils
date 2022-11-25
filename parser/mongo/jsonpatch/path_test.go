@@ -1,4 +1,4 @@
-package jsonpath
+package jsonpatch
 
 import (
 	"testing"
@@ -38,4 +38,18 @@ func TestIsValidPath(t *testing.T) {
 		path = Path(".##")
 		require.False(t, path.Valid())
 	})
+}
+
+//nolint:gocritic
+func TestComparePath(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, Path("").Compare(Path("")))
+	require.True(t, Path("a.b.c").Compare(Path("a.b.c")))
+	require.True(t, Path("*.b.c").Compare(Path("a.b.c")))
+	require.True(t, Path("a.*.c").Compare(Path("a.b.c")))
+	require.True(t, Path("a.b.*").Compare(Path("a.b.c")))
+	require.True(t, Path("*.*").Compare(Path("a.b")))
+	require.False(t, Path("*.*").Compare(Path("x")))
+	require.False(t, Path("*.*").Compare(Path("x.y.z")))
 }

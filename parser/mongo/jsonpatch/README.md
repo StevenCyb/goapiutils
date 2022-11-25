@@ -1,4 +1,4 @@
-# Query for JSON path
+# Query for JSON patch
 With patch operations patches can be specified in detail base on [RFC6902](https://datatracker.ietf.org/doc/html/rfc6902)
 (`test` operation is not implemented - use [RSQL Parser](parser/mongo/rsql/README.md) instead)
 There are five operations available:
@@ -13,29 +13,30 @@ There are five operations available:
 This features are supported for `MongoDB 4.2+`.
 
 Additionally, simple rules can be set:
-| Policy                          | Description                                                           |
-|---------------------------------|-----------------------------------------------------------------------|
-| `DisallowPathPolicy`            | specifies a path that is not allowed.                                 |
-| `DisallowOperationOnPathPolicy` | disallows specified operation on path.                                |
-| `ForceTypeOnPathPolicy`         | forces the value of a specif path to be from given type.              |
-| `ForceRegexMatchPolicy`         | forces the value of a specif path to match expression.                |
-| `StrictPathPolicy`              | forces path to be strictly one of. Use `*` as key for any field name. |
+| Policy                          | Description                                              |
+|---------------------------------|----------------------------------------------------------|
+| `DisallowPathPolicy`            | specifies a path that is not allowed.                    |
+| `DisallowOperationOnPathPolicy` | disallows specified operation on path.                   |
+| `ForceTypeOnPathPolicy`         | forces the value of a specif path to be from given type. |
+| `ForceRegexMatchPolicy`         | forces the value of a specif path to match expression.   |
+| `StrictPathPolicy`              | forces path to be strictly one of.  |
+The path fields can be set to `*` for any field name. E.g. `*.version` will match `product.version` but not `version`.
 
 # How to
 ## Basic usage
 ```go
 import (
-  "github.com/StevenCyb/goapiutils/parser/mongo/jsonpath"
+  "github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch"
 
   "go.mongodb.org/mongo-driver/mongo/options"
 )
 // ...
 
-  var operations []jsonpath.OperationSpec
+  var operations []jsonpatch.OperationSpec
   err = json.NewDecoder(req.Body).Decode(&operations)
   // ...
 
-  parser := jsonpath.NewParser()
+  parser := jsonpatch.NewParser()
   query, err := parser.Parse(operations...)
   // ...
 
@@ -44,7 +45,7 @@ import (
 ```
 ## Policy usage
 ```go
-  parser := jsonpath.NewParser(
+  parser := jsonpatch.NewParser(
     DisallowPathPolicy{Details: "illegal ID modification", Path: "_id"},
     ForceTypeOnPathPolicy{Details: "age as number", Path: "user.age", Kind: reflect.Int64},
   ),

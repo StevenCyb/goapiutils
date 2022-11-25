@@ -1,10 +1,9 @@
-package jsonpath
+package jsonpatch
 
 import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 )
 
 // Policy specifies the interface for an policy.
@@ -26,7 +25,7 @@ func (d DisallowPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
-	return operationSpec.Path != d.Path
+	return !operationSpec.Path.Compare(d.Path)
 }
 
 // DisallowOperationOnPathPolicy disallows specified operation on path.
@@ -43,7 +42,7 @@ func (d DisallowOperationOnPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
-	if operationSpec.Path != d.Path {
+	if !operationSpec.Path.Compare(d.Path) {
 		return true
 	}
 
@@ -64,7 +63,7 @@ func (f ForceTypeOnPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (f ForceTypeOnPathPolicy) Test(operationSpec OperationSpec) bool {
-	if operationSpec.Path != f.Path {
+	if !operationSpec.Path.Compare(f.Path) {
 		return true
 	}
 
@@ -85,14 +84,14 @@ func (f ForceRegexMatchPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
-	if operationSpec.Path != f.Path {
+	if !operationSpec.Path.Compare(f.Path) {
 		return true
 	}
 
 	return f.Expression.MatchString(fmt.Sprintf("%+v", operationSpec.Value))
 }
 
-// StrictPathPolicy forces path to be strictly one of. Use `*` key for any field name.
+// StrictPathPolicy forces path to be strictly one of.
 type StrictPathPolicy struct {
 	Details string
 	Path    []Path
@@ -106,33 +105,7 @@ func (s StrictPathPolicy) GetDetails() string {
 // Test if given operation specification is valid or not.
 func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
 	for _, path := range s.Path {
-
-		if strings.Contains(string(path), "*") {
-			stringPath := []rune(path)
-			offset := 0
-
-			for i, char := range operationSpec.Path {
-				if i == len(operationSpec.Path)-1 && (i+offset) == len(stringPath)-1 {
-					return true
-				}
-
-				if stringPath[i+offset] == '*' {
-					if char != '.' {
-						offset--
-					} else {
-						offset++
-					}
-
-					continue
-				}
-
-				if stringPath[i+offset] != char {
-					break
-				}
-			}
-		}
-
-		if operationSpec.Path == path {
+		if path.Compare(operationSpec.Path) {
 			return true
 		}
 	}

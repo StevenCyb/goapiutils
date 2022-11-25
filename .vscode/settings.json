@@ -67,7 +67,7 @@
         "nonamedreturns",
         "nosprintfhostport",
         "paralleltest",
-        "jsonpath",
+        "jsonpatch",
         "prealloc",
         "predeclared",
         "promlinter",
