@@ -1,5 +1,5 @@
 //nolint:goconst
-package jsonpath
+package jsonpatch
 
 import (
 	"reflect"
@@ -86,10 +86,17 @@ func TestForceRegexMatchPolicy(t *testing.T) {
 		Expression: *regexp.MustCompile(`^v[0-9]*\.[0-9]*\.[0-9]*$`),
 	}
 
+	policy2 := ForceRegexMatchPolicy{
+		Details: details, Path: "*.version",
+		Expression: *regexp.MustCompile(`^v[0-9]*\.[0-9]*\.[0-9]*$`),
+	}
+
 	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Value: "va.0.0"}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Value: "v0.3.7"}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Value: "backend"}))
+	require.True(t, policy2.Test(OperationSpec{Path: "api.version", Value: "v0.3.7"}))
+	require.True(t, policy2.Test(OperationSpec{Path: "backend.version", Value: "v0.3.7"}))
 }
 
 func TestStrictPathPolicy(t *testing.T) {
@@ -110,6 +117,8 @@ func TestStrictPathPolicy(t *testing.T) {
 	require.True(t, policy.Test(OperationSpec{Path: path1, Value: "v0.3.7"}))
 	require.True(t, policy.Test(OperationSpec{Path: path2, Value: "24.11.20022"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path3), "*", "key")), Value: "xyz"}))
+	require.False(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path3), "*", "key")) + ".key2",
+		Value: "xyz"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path4), "*", "key")), Value: "xyz"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path("product.group.a.title"), Value: "xyz"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path("product.group.b.title"), Value: "xyz"}))
