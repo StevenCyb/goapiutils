@@ -14,9 +14,9 @@ func (p Path) Valid() bool {
 	return regex.MatchString(string(p))
 }
 
-// Compare check if path is equal to given path.
+// Equal check if path is equal to given path.
 // Single fields can be set to `*` for wildcard.
-func (p Path) Compare(p2 Path) bool {
+func (p Path) Equal(p2 Path) bool {
 	if strings.Contains(string(p), "*") {
 		stringPath := []rune(p)
 		offset := 0

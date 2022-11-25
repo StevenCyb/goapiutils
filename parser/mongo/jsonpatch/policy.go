@@ -25,7 +25,7 @@ func (d DisallowPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
-	return !operationSpec.Path.Compare(d.Path)
+	return !d.Path.Equal(operationSpec.Path)
 }
 
 // DisallowOperationOnPathPolicy disallows specified operation on path.
@@ -42,7 +42,7 @@ func (d DisallowOperationOnPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
-	if !operationSpec.Path.Compare(d.Path) {
+	if !d.Path.Equal(operationSpec.Path) {
 		return true
 	}
 
@@ -63,7 +63,7 @@ func (f ForceTypeOnPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (f ForceTypeOnPathPolicy) Test(operationSpec OperationSpec) bool {
-	if !operationSpec.Path.Compare(f.Path) {
+	if !f.Path.Equal(operationSpec.Path) {
 		return true
 	}
 
@@ -84,7 +84,7 @@ func (f ForceRegexMatchPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
-	if !operationSpec.Path.Compare(f.Path) {
+	if !f.Path.Equal(operationSpec.Path) {
 		return true
 	}
 
@@ -105,7 +105,7 @@ func (s StrictPathPolicy) GetDetails() string {
 // Test if given operation specification is valid or not.
 func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
 	for _, path := range s.Path {
-		if path.Compare(operationSpec.Path) {
+		if path.Equal(operationSpec.Path) {
 			return true
 		}
 	}
@@ -127,7 +127,7 @@ func (d ForceOperationOnPathPolicy) GetDetails() string {
 
 // Test if given operation specification is valid or not.
 func (d ForceOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
-	if !operationSpec.Path.Compare(d.Path) {
+	if !d.Path.Equal(operationSpec.Path) {
 		return true
 	}
 

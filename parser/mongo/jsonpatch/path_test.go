@@ -44,12 +44,13 @@ func TestIsValidPath(t *testing.T) {
 func TestComparePath(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, Path("").Compare(Path("")))
-	require.True(t, Path("a.b.c").Compare(Path("a.b.c")))
-	require.True(t, Path("*.b.c").Compare(Path("a.b.c")))
-	require.True(t, Path("a.*.c").Compare(Path("a.b.c")))
-	require.True(t, Path("a.b.*").Compare(Path("a.b.c")))
-	require.True(t, Path("*.*").Compare(Path("a.b")))
-	require.False(t, Path("*.*").Compare(Path("x")))
-	require.False(t, Path("*.*").Compare(Path("x.y.z")))
+	require.True(t, Path("").Equal(Path("")))
+	require.True(t, Path("a.b.c").Equal(Path("a.b.c")))
+	require.True(t, Path("*.b.c").Equal(Path("a.b.c")))
+	require.True(t, Path("a.*.c").Equal(Path("a.b.c")))
+	require.True(t, Path("a.b.*").Equal(Path("a.b.c")))
+	require.True(t, Path("*.*").Equal(Path("a.b")))
+	require.True(t, Path("a.*").Equal(Path("a.0")))
+	require.False(t, Path("*.*").Equal(Path("x")))
+	require.False(t, Path("*.*").Equal(Path("x.y.z")))
 }
