@@ -50,11 +50,12 @@ func TestDisallowOperationOnPathPolicy(t *testing.T) {
 	path := Path("user.userdetails")
 	notEffected := Path("user.disabled")
 	policy := DisallowOperationOnPathPolicy{
-		Details: details, Path: path, Operation: RemoveOperation,
+		Details: details, Path: path, Operations: []Operation{RemoveOperation, AddOperation},
 	}
 
 	require.Equal(t, details, policy.Details)
 	require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
+	require.False(t, policy.Test(OperationSpec{Path: path, Operation: AddOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
 	require.True(t, policy.Test(OperationSpec{Path: notEffected, Operation: RemoveOperation}))
 }
@@ -117,8 +118,10 @@ func TestStrictPathPolicy(t *testing.T) {
 	require.True(t, policy.Test(OperationSpec{Path: path1, Value: "v0.3.7"}))
 	require.True(t, policy.Test(OperationSpec{Path: path2, Value: "24.11.20022"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path3), "*", "key")), Value: "xyz"}))
-	require.False(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path3), "*", "key")) + ".key2",
-		Value: "xyz"}))
+	require.False(t, policy.Test(OperationSpec{
+		Path:  Path(strings.ReplaceAll(string(path3), "*", "key")) + ".key2",
+		Value: "xyz",
+	}))
 	require.True(t, policy.Test(OperationSpec{Path: Path(strings.ReplaceAll(string(path4), "*", "key")), Value: "xyz"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path("product.group.a.title"), Value: "xyz"}))
 	require.True(t, policy.Test(OperationSpec{Path: Path("product.group.b.title"), Value: "xyz"}))
@@ -135,7 +138,7 @@ func TestForceOperationOnPathPolicy(t *testing.T) {
 	}
 
 	require.Equal(t, details, policy.Details)
-	 require.True(t, policy.Test(OperationSpec{Path: path, Operation: AddOperation}))
-	 require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
-	 require.False(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
+	require.True(t, policy.Test(OperationSpec{Path: path, Operation: AddOperation}))
+	require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
+	require.False(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
 }

@@ -28,11 +28,11 @@ func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
 	return !d.Path.Equal(operationSpec.Path)
 }
 
-// DisallowOperationOnPathPolicy disallows specified operation on path.
+// DisallowOperationOnPathPolicy disallows specified operations on path.
 type DisallowOperationOnPathPolicy struct {
-	Details   string
-	Path      Path
-	Operation Operation
+	Details    string
+	Path       Path
+	Operations []Operation
 }
 
 // GetDetails returns the name of this policy.
@@ -46,7 +46,13 @@ func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
 		return true
 	}
 
-	return d.Operation != operationSpec.Operation
+	for _, operation := range d.Operations {
+		if operation == operationSpec.Operation {
+			return false
+		}
+	}
+
+	return true
 }
 
 // ForceTypeOnPathPolicy forces the value of a specif path to be from given type.
