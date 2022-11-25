@@ -2,6 +2,8 @@ package jsonpatch
 
 import (
 	"reflect"
+	"regexp"
+	"strconv"
 
 	"github.com/StevenCyb/goapiutils/parser/errs"
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,17 +39,59 @@ func (p Parser) Parse(operationSpecs ...OperationSpec) (bson.A, error) {
 }
 
 // generateMongoQuery generates the mongo query out of operation spec.
+//
+//nolint:funlen
 func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, error) {
 	var (
-		element bson.M
-		query   = bson.A{}
+		element  bson.M
+		query    = bson.A{}
+		noSuffix = regexp.MustCompile(`\.[0-9]+$`)
 	)
 
 	for _, operationSpec := range operationSpecs {
 		switch operationSpec.Operation {
 		case RemoveOperation:
-			element = bson.M{
-				"$unset": string(operationSpec.Path),
+			if noSuffix.Match([]byte(operationSpec.Path)) {
+				extract := regexp.MustCompile(`^(?P<path>.*)\.(?P<index>[0-9]+)$`)
+				match := extract.FindStringSubmatch(string(operationSpec.Path))
+				paramsMap := make(map[string]string)
+
+				for i, name := range extract.SubexpNames() {
+					if i > 0 && i <= len(match) {
+						paramsMap[name] = match[i]
+					}
+				}
+
+				path := paramsMap["path"]
+				index, _ := strconv.ParseInt(paramsMap["index"], 10, 64)
+
+				element = bson.M{
+					"$set": bson.M{
+						path: bson.M{
+							"$concatArrays": bson.A{
+								bson.M{
+									"$slice": bson.A{
+										"$" + path,
+										index,
+									},
+								},
+								bson.M{
+									"$slice": bson.A{
+										"$" + path,
+										bson.M{
+											"$add": bson.A{1, index},
+										},
+										bson.M{"$size": "$" + path},
+									},
+								},
+							},
+						},
+					},
+				}
+			} else {
+				element = bson.M{
+					"$unset": string(operationSpec.Path),
+				}
 			}
 		case AddOperation:
 			if reflect.TypeOf(operationSpec.Value).Kind() != reflect.Slice {

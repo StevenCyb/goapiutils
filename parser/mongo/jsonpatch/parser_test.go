@@ -39,13 +39,31 @@ type DummyDoc struct {
 func TestSingleRemoveOperation(t *testing.T) {
 	t.Parallel()
 
-	path := Path("user.group")
+	pathGroup := Path("user.group")
+	pathGroups := Path("user.groups.3")
 
 	ExecuteSuccessTest(t, Parser{},
 		bson.A{bson.M{"$unset": "user.group"}},
 		OperationSpec{
 			Operation: RemoveOperation,
-			Path:      path,
+			Path:      pathGroup,
+		},
+	)
+
+	ExecuteSuccessTest(t, Parser{},
+		bson.A{bson.M{"$set": bson.M{
+			"user.groups": bson.M{"$concatArrays": bson.A{
+				bson.M{"$slice": bson.A{"$user.groups", int64(3)}},
+				bson.M{"$slice": bson.A{
+					"$user.groups",
+					bson.M{"$add": bson.A{1, int64(3)}},
+					bson.M{"$size": "$user.groups"},
+				}},
+			}},
+		}}},
+		OperationSpec{
+			Operation: RemoveOperation,
+			Path:      pathGroups,
 		},
 	)
 }
