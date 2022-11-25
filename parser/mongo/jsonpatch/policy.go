@@ -112,3 +112,24 @@ func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
 
 	return false
 }
+
+// ForceOperationOnPathPolicy force specified operation on path.
+type ForceOperationOnPathPolicy struct {
+	Details   string
+	Path      Path
+	Operation Operation
+}
+
+// GetDetails returns the name of this policy.
+func (d ForceOperationOnPathPolicy) GetDetails() string {
+	return d.Details
+}
+
+// Test if given operation specification is valid or not.
+func (d ForceOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
+	if !operationSpec.Path.Compare(d.Path) {
+		return true
+	}
+
+	return d.Operation == operationSpec.Operation
+}
