@@ -22,7 +22,6 @@ Additionally, simple rules can be set:
 | `StrictPathPolicy`              | forces path to be strictly one of.  |
 The path fields can be set to `*` for any field name. E.g. `*.version` will match `product.version` but not `version`.
 
-
 # How to
 ## Basic usage
 ```go
