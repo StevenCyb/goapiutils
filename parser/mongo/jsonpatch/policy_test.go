@@ -124,3 +124,18 @@ func TestStrictPathPolicy(t *testing.T) {
 	require.True(t, policy.Test(OperationSpec{Path: Path("product.group.b.title"), Value: "xyz"}))
 	require.False(t, policy.Test(OperationSpec{Path: invalidPath, Value: "something"}))
 }
+
+func TestForceOperationOnPathPolicy(t *testing.T) {
+	t.Parallel()
+
+	details := "something"
+	path := Path("user.userdetails")
+	policy := ForceOperationOnPathPolicy{
+		Details: details, Path: path, Operation: AddOperation,
+	}
+
+	require.Equal(t, details, policy.Details)
+	 require.True(t, policy.Test(OperationSpec{Path: path, Operation: AddOperation}))
+	 require.False(t, policy.Test(OperationSpec{Path: path, Operation: RemoveOperation}))
+	 require.False(t, policy.Test(OperationSpec{Path: path, Operation: ReplaceOperation}))
+}
