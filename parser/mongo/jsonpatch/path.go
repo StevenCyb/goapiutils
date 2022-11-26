@@ -16,21 +16,18 @@ func (p Path) Valid() bool {
 
 // Equal check if path is equal to given path.
 // Single fields can be set to `*` for wildcard.
-func (p Path) Equal(p2 Path) bool {
+func (p Path) Equal(comparePath Path) bool {
 	if strings.Contains(string(p), "*") {
 		stringPath := []rune(p)
 		offset := 0
 
-		for index, char := range p2 {
-			if index == len(p2)-1 && (index+offset) == len(stringPath)-1 {
-				return true
-			}
-
-			if len(stringPath) <= index+offset {
+		for index, char := range comparePath {
+			switch {
+			case index == len(comparePath)-1 && (index+offset) == len(stringPath)-1:
+				return stringPath[index+offset] == '*' || stringPath[index+offset] == char
+			case len(stringPath) <= index+offset:
 				break
-			}
-
-			if stringPath[index+offset] == '*' {
+			case stringPath[index+offset] == '*':
 				if char != '.' {
 					offset--
 				} else {
@@ -38,9 +35,7 @@ func (p Path) Equal(p2 Path) bool {
 				}
 
 				continue
-			}
-
-			if stringPath[index+offset] != char {
+			case stringPath[index+offset] != char:
 				break
 			}
 		}
@@ -48,7 +43,7 @@ func (p Path) Equal(p2 Path) bool {
 		return false
 	}
 
-	if p == p2 {
+	if p == comparePath {
 		return true
 	}
 
