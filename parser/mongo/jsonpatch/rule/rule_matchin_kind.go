@@ -65,7 +65,9 @@ func (m MatchingKindRule) deepCompareIterable(name string, referenceType, object
 
 	if objectType.Kind() == reflect.Map && referenceType.Kind() == reflect.Map {
 		if referenceType.Key().Kind() != objectType.Key().Kind() {
-			return TypeMismatchError{name: name, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind()}
+			return TypeMismatchError{
+				name: name, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind(), forKey: true,
+			}
 		}
 	}
 
