@@ -16,7 +16,7 @@ func TestErrorChain(t *testing.T) {
 		errChain := Chain{}
 
 		errChain.AddIf(nil)
-		errChain.AddIf(errors.New("test"))
+		errChain.AddIf(errors.New("test")) //nolint:goerr113
 		errChain.AddIf(nil)
 
 		require.Error(t, errChain.GetError())
