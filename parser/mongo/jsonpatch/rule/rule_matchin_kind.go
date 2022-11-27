@@ -31,8 +31,6 @@ func (m MatchingKindRule) Apply(operationSpec operation.Spec) error {
 }
 
 // deepCompareType checks recursively one interface against a reference.
-//
-//nolint:funlen
 func (m MatchingKindRule) deepCompareType(name string, reference, object interface{}) error {
 	var (
 		err           error
@@ -51,51 +49,63 @@ func (m MatchingKindRule) deepCompareType(name string, reference, object interfa
 		err = m.deepCompareType(name, reflect.Zero(referenceType.Elem()).Interface(),
 			reflect.Zero(objectType.Elem()).Interface())
 	case reflect.Array, reflect.Map, reflect.Slice:
+		err = m.deepCompareIterable(name, referenceType, objectType)
+	case reflect.Struct:
+		err = m.deepCompareStruct(referenceType, objectType)
+	}
+
+	return err
+}
+
+func (m MatchingKindRule) deepCompareIterable(name string, referenceType, objectType reflect.Type) error {
+	var (
+		referenceZeroValue = reflect.Zero(referenceType.Elem())
+		objectZeroValue    = reflect.Zero(objectType.Elem())
+	)
+
+	if objectType.Kind() == reflect.Map && referenceType.Kind() == reflect.Map {
+		if referenceType.Key().Kind() != objectType.Key().Kind() {
+			return TypeMismatchError{name: name, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind()}
+		}
+	}
+
+	return m.deepCompareType(name+" item", referenceZeroValue.Interface(), objectZeroValue.Interface())
+}
+
+func (m MatchingKindRule) deepCompareStruct(referenceType, objectType reflect.Type) error {
+	var err error
+
+	for i := 0; i < objectType.NumField(); i++ {
 		var (
-			referenceZeroValue = reflect.Zero(referenceType.Elem())
-			objectZeroValue    = reflect.Zero(objectType.Elem())
+			objectField = objectType.Field(i)
+			objectName  = objectField.Name
+			found       = false
 		)
 
-		if objectType.Kind() == reflect.Map && referenceType.Kind() == reflect.Map {
-			if referenceType.Key().Kind() != objectType.Key().Kind() {
-				return TypeMismatchError{name: name, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind()}
-			}
-		}
-
-		err = m.deepCompareType(name+" item", referenceZeroValue.Interface(), objectZeroValue.Interface())
-	case reflect.Struct:
-		for i := 0; i < objectType.NumField(); i++ {
+		for i := 0; i < referenceType.NumField(); i++ {
 			var (
-				objectField = objectType.Field(i)
-				objectName  = objectField.Name
-				found       = false
+				referenceField = referenceType.Field(i)
+				referenceName  = referenceField.Tag.Get("bson")
+				zeroValue      = reflect.Zero(referenceField.Type)
 			)
 
-			for i := 0; i < referenceType.NumField(); i++ {
-				var (
-					referenceField = referenceType.Field(i)
-					referenceName  = referenceField.Tag.Get("bson")
-					zeroValue      = reflect.Zero(referenceField.Type)
-				)
-
-				if referenceField.Type.Kind() == reflect.Ptr {
-					zeroValue = reflect.Zero(referenceField.Type.Elem())
-				}
-
-				if objectName == referenceName {
-					err = m.deepCompareType(objectName, zeroValue.Interface(), reflect.Zero(objectField.Type).Interface())
-
-					found = true
-
-					break
-				}
+			if referenceField.Type.Kind() == reflect.Ptr {
+				zeroValue = reflect.Zero(referenceField.Type.Elem())
 			}
 
-			if !found {
-				err = UnknownFieldError{name: objectName}
+			if objectName == referenceName {
+				err = m.deepCompareType(objectName, zeroValue.Interface(), reflect.Zero(objectField.Type).Interface())
+
+				found = true
 
 				break
 			}
+		}
+
+		if !found {
+			err = UnknownFieldError{name: objectName}
+
+			break
 		}
 	}
 
