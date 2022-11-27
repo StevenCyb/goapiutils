@@ -45,10 +45,10 @@ func (u UnknownFieldError) Error() string {
 }
 
 type TypeMismatchError struct {
-	forKey   bool
 	name     string
 	expected reflect.Kind
 	actual   reflect.Kind
+	forKey   bool
 }
 
 func (t TypeMismatchError) Error() string {
