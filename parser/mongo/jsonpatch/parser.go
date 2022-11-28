@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/StevenCyb/goapiutils/parser/errs"
+	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -22,7 +23,7 @@ type Parser struct {
 }
 
 // Parse given operation spec to generate mongo queries if not violating policies.
-func (p Parser) Parse(operationSpecs ...OperationSpec) (bson.A, error) {
+func (p Parser) Parse(operationSpecs ...operation.Spec) (bson.A, error) {
 	for _, policy := range p.Policies {
 		for _, operationSpec := range operationSpecs {
 			if !operationSpec.Valid() {
@@ -41,7 +42,7 @@ func (p Parser) Parse(operationSpecs ...OperationSpec) (bson.A, error) {
 // generateMongoQuery generates the mongo query out of operation spec.
 //
 //nolint:funlen
-func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, error) {
+func (p Parser) generateMongoQuery(operationSpecs ...operation.Spec) (bson.A, error) {
 	var (
 		element  bson.M
 		query    = bson.A{}
@@ -50,7 +51,7 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 
 	for _, operationSpec := range operationSpecs {
 		switch operationSpec.Operation {
-		case RemoveOperation:
+		case operation.RemoveOperation:
 			if noSuffix.Match([]byte(operationSpec.Path)) {
 				extract := regexp.MustCompile(`^(?P<path>.*)\.(?P<index>[0-9]+)$`)
 				match := extract.FindStringSubmatch(string(operationSpec.Path))
@@ -63,8 +64,7 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 				}
 
 				path := paramsMap["path"]
-				index, _ := strconv.ParseInt(paramsMap["index"], 10, 64) //nolint:gomnd
-
+				index, _ := strconv.ParseInt(paramsMap["index"], 10, 64)
 				element = bson.M{
 					"$set": bson.M{
 						path: bson.M{
@@ -93,7 +93,7 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 					"$unset": string(operationSpec.Path),
 				}
 			}
-		case AddOperation:
+		case operation.AddOperation:
 			if reflect.TypeOf(operationSpec.Value).Kind() != reflect.Slice {
 				operationSpec.Value = []interface{}{operationSpec.Value}
 			}
@@ -108,13 +108,13 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 					},
 				},
 			}
-		case ReplaceOperation:
+		case operation.ReplaceOperation:
 			element = bson.M{
 				"$set": bson.M{
 					string(operationSpec.Path): operationSpec.Value,
 				},
 			}
-		case MoveOperation:
+		case operation.MoveOperation:
 			query = append(query, bson.M{
 				"$set": bson.M{
 					string(operationSpec.Path): "$" + string(operationSpec.From),
@@ -123,7 +123,7 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 			element = bson.M{
 				"$unset": string(operationSpec.From),
 			}
-		case CopyOperation:
+		case operation.CopyOperation:
 			element = bson.M{
 				"$set": bson.M{
 					string(operationSpec.Path): "$" + string(operationSpec.From),
