@@ -48,7 +48,7 @@ func (m MinRule) Validate(operationSpec operation.Spec) error {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		size = float64(reflect.ValueOf(operationSpec.Value).Len())
 	default:
-		converted, err := strconv.ParseFloat(fmt.Sprint(operationSpec.Value), 64) //nolint:gomnd
+		converted, err := strconv.ParseFloat(fmt.Sprint(operationSpec.Value), 64)
 		if err != nil {
 			return fmt.Errorf("converting failed: %w", err)
 		}

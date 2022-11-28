@@ -30,6 +30,10 @@ func (m *MatchingKindRule) NewInheritInstance(_ string, _ reflect.Kind, instance
 
 // Validate applies rule on given patch operation specification.
 func (m MatchingKindRule) Validate(operationSpec operation.Spec) error {
+	if operationSpec.Value == nil {
+		return nil
+	}
+
 	return m.deepCompareType("root value", m.Instance, operationSpec.Value)
 }
 

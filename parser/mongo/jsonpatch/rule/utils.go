@@ -28,7 +28,7 @@ func getBoolIfNotEmpty(valueString, path, key string) (*bool, error) {
 
 // getFloat64IfNotEmpty parse string to float64 or throw error.
 func getFloat64IfNotEmpty(valueString, path, key string) (*float64, error) {
-	value, err := strconv.ParseFloat(valueString, 64) //nolint:gomnd
+	value, err := strconv.ParseFloat(valueString, 64)
 	if err != nil {
 		return nil, fmt.Errorf("rule `%s` at '%s': %w", key, path, ErrInvalidNumber)
 	}
