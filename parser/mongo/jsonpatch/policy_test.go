@@ -118,12 +118,16 @@ func TestStrictPathPolicy(t *testing.T) {
 	require.Equal(t, details, policy.Details)
 	require.True(t, policy.Test(operation.Spec{Path: path1, Value: "v0.3.7"}))
 	require.True(t, policy.Test(operation.Spec{Path: path2, Value: "24.11.20022"}))
-	require.True(t, policy.Test(operation.Spec{Path: operation.Path(strings.ReplaceAll(string(path3), "*", "key")), Value: "xyz"}))
+	require.True(t, policy.Test(operation.Spec{
+		Path: operation.Path(strings.ReplaceAll(string(path3), "*", "key")), Value: "xyz",
+	}))
 	require.False(t, policy.Test(operation.Spec{
 		Path:  operation.Path(strings.ReplaceAll(string(path3), "*", "key")) + ".key2",
 		Value: "xyz",
 	}))
-	require.True(t, policy.Test(operation.Spec{Path: operation.Path(strings.ReplaceAll(string(path4), "*", "key")), Value: "xyz"}))
+	require.True(t, policy.Test(operation.Spec{
+		Path: operation.Path(strings.ReplaceAll(string(path4), "*", "key")), Value: "xyz",
+	}))
 	require.True(t, policy.Test(operation.Spec{Path: operation.Path("product.group.a.title"), Value: "xyz"}))
 	require.True(t, policy.Test(operation.Spec{Path: operation.Path("product.group.b.title"), Value: "xyz"}))
 	require.False(t, policy.Test(operation.Spec{Path: invalidPath, Value: "something"}))
