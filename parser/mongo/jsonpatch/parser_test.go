@@ -2,6 +2,7 @@ package jsonpatch
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/StevenCyb/goapiutils/parser/errs"
@@ -30,7 +31,7 @@ func ExecuteFailedTest(t *testing.T, parser Parser, expectedError error, operati
 
 // DummyDoc is a simple dummy doc for mongo tests.
 type DummyDoc struct {
-	ID string  `bson:"_id"` //nolint:tagliatelle
+	ID string  `bson:"_id" jp_disallow:"true"` //nolint:tagliatelle
 	A  string  `bson:"a"`
 	B  string  `bson:"b"`
 	D  []int   `bson:"d"`
@@ -148,7 +149,7 @@ func TestInvalidOperation(t *testing.T) {
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
+			policies: []Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
 		errs.NewErrUnexpectedInput(operation.Spec{}),
 		operation.Spec{},
@@ -163,11 +164,42 @@ func TestPolicyViolation(t *testing.T) {
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
+			policies: []Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
 		errs.NewErrPolicyViolation(name),
 		operation.Spec{Operation: operation.RemoveOperation, Path: path},
 	)
+}
+
+func TestSmartParsing(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewSmartParser(reflect.TypeOf(DummyDoc{}))
+	require.NoError(t, err)
+
+	t.Run("ValidOperation_Success", func(t *testing.T) {
+		t.Parallel()
+
+		query, err := parser.Parse(operation.Spec{
+			Operation: operation.ReplaceOperation,
+			Path:      "a",
+			Value:     "new",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, query)
+	})
+
+	t.Run("InvalidOperation_Fail", func(t *testing.T) {
+		t.Parallel()
+
+		query, err := parser.Parse(operation.Spec{
+			Operation: operation.ReplaceOperation,
+			Path:      "_id",
+			Value:     "new",
+		})
+		require.Error(t, err)
+		require.Nil(t, query)
+	})
 }
 
 func TestInterpretation(t *testing.T) {

@@ -1,30 +1,56 @@
 package jsonpatch
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
 
 	"github.com/StevenCyb/goapiutils/parser/errs"
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
+	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/validator"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// NewParser creates a new parser.
+var ErrNoOperationToPerform = errors.New("no operation to perform")
+
+// NewParser creates a new parser that uses optional policies.
 func NewParser(policies ...Policy) *Parser {
 	return &Parser{
-		Policies: policies,
+		policies: policies,
 	}
+}
+
+// NewSmartParser creates a new parser that create rules based on given type.
+func NewSmartParser(reference reflect.Type) (*Parser, error) {
+	if reference == nil {
+		return nil, validator.ErrReferenceIsNil
+	}
+
+	validator, err := validator.NewValidator(reference)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rules from reference: %w", err)
+	}
+
+	return &Parser{
+		validator: validator,
+	}, nil
 }
 
 // Parser that can parse patch operation to generate mongo queries.
 type Parser struct {
-	Policies []Policy
+	validator *validator.Validator
+	policies  []Policy
 }
 
 // Parse given operation spec to generate mongo queries if not violating policies.
 func (p Parser) Parse(operationSpecs ...operation.Spec) (bson.A, error) {
-	for _, policy := range p.Policies {
+	if len(operationSpecs) == 0 {
+		return nil, ErrNoOperationToPerform
+	}
+
+	for _, policy := range p.policies {
 		for _, operationSpec := range operationSpecs {
 			if !operationSpec.Valid() {
 				return nil, errs.NewErrUnexpectedInput(operationSpec)
@@ -32,6 +58,15 @@ func (p Parser) Parse(operationSpecs ...operation.Spec) (bson.A, error) {
 
 			if !policy.Test(operationSpec) {
 				return nil, errs.NewErrPolicyViolation(policy.GetDetails())
+			}
+		}
+	}
+
+	if p.validator != nil {
+		for _, operationSpec := range operationSpecs {
+			err := p.validator.Validate(operationSpec)
+			if err != nil {
+				return nil, fmt.Errorf("operation '%+v' invalid: %w", operationSpec, err)
 			}
 		}
 	}
