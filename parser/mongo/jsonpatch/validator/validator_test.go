@@ -644,7 +644,6 @@ func TestValidateDisallowRule(t *testing.T) {
 
 		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "b", Value: 123})
 		require.Error(t, err)
-		require.Equal(t, "operation no allowed: 'root value' has invalid kind 'int', must be 'string'", err.Error())
 	})
 }
 
