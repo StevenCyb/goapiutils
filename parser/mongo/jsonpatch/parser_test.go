@@ -2,9 +2,11 @@ package jsonpatch
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/StevenCyb/goapiutils/parser/errs"
+	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 	testutil "github.com/StevenCyb/goapiutils/parser/mongo/test_util"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ExecuteSuccessTest(t *testing.T, parser Parser, expect bson.A, operationSpecs ...OperationSpec) {
+func ExecuteSuccessTest(t *testing.T, parser Parser, expect bson.A, operationSpecs ...operation.Spec) {
 	t.Helper()
 
 	actual, err := parser.Parse(operationSpecs...)
@@ -20,7 +22,7 @@ func ExecuteSuccessTest(t *testing.T, parser Parser, expect bson.A, operationSpe
 	require.Equal(t, expect, actual)
 }
 
-func ExecuteFailedTest(t *testing.T, parser Parser, expectedError error, operationSpecs ...OperationSpec) {
+func ExecuteFailedTest(t *testing.T, parser Parser, expectedError error, operationSpecs ...operation.Spec) {
 	t.Helper()
 
 	_, err := parser.Parse(operationSpecs...)
@@ -29,7 +31,7 @@ func ExecuteFailedTest(t *testing.T, parser Parser, expectedError error, operati
 
 // DummyDoc is a simple dummy doc for mongo tests.
 type DummyDoc struct {
-	ID string  `bson:"_id"` //nolint:tagliatelle
+	ID string  `bson:"_id" jp_disallow:"true"` //nolint:tagliatelle
 	A  string  `bson:"a"`
 	B  string  `bson:"b"`
 	D  []int   `bson:"d"`
@@ -39,13 +41,13 @@ type DummyDoc struct {
 func TestSingleRemoveOperation(t *testing.T) {
 	t.Parallel()
 
-	pathGroup := Path("user.group")
-	pathGroups := Path("user.groups.3")
+	pathGroup := operation.Path("user.group")
+	pathGroups := operation.Path("user.groups.3")
 
 	ExecuteSuccessTest(t, Parser{},
 		bson.A{bson.M{"$unset": "user.group"}},
-		OperationSpec{
-			Operation: RemoveOperation,
+		operation.Spec{
+			Operation: operation.RemoveOperation,
 			Path:      pathGroup,
 		},
 	)
@@ -61,8 +63,8 @@ func TestSingleRemoveOperation(t *testing.T) {
 				}},
 			}},
 		}}},
-		OperationSpec{
-			Operation: RemoveOperation,
+		operation.Spec{
+			Operation: operation.RemoveOperation,
 			Path:      pathGroups,
 		},
 	)
@@ -71,13 +73,13 @@ func TestSingleRemoveOperation(t *testing.T) {
 func TestSingleAddOperation(t *testing.T) {
 	t.Parallel()
 
-	path := Path("user.group")
+	path := operation.Path("user.group")
 	value := 1.2
 
 	ExecuteSuccessTest(t, Parser{},
 		bson.A{bson.M{"$set": bson.M{"user.group": bson.M{"$concatArrays": bson.A{"$user.group", []interface{}{1.2}}}}}},
-		OperationSpec{
-			Operation: AddOperation,
+		operation.Spec{
+			Operation: operation.AddOperation,
 			Path:      path,
 			Value:     value,
 		},
@@ -87,13 +89,13 @@ func TestSingleAddOperation(t *testing.T) {
 func TestSingleReplaceOperation(t *testing.T) {
 	t.Parallel()
 
-	path := Path("user.group")
+	path := operation.Path("user.group")
 	value := 1.2
 
 	ExecuteSuccessTest(t, Parser{},
 		bson.A{bson.M{"$set": bson.M{"user.group": 1.2}}},
-		OperationSpec{
-			Operation: ReplaceOperation,
+		operation.Spec{
+			Operation: operation.ReplaceOperation,
 			Path:      path,
 			Value:     value,
 		},
@@ -103,8 +105,8 @@ func TestSingleReplaceOperation(t *testing.T) {
 func TestSingleMoveOperation(t *testing.T) {
 	t.Parallel()
 
-	path := Path("user.a")
-	from := Path("user.a_tmp")
+	path := operation.Path("user.a")
+	from := operation.Path("user.a_tmp")
 	value := 1.2
 
 	ExecuteSuccessTest(t, Parser{},
@@ -112,8 +114,8 @@ func TestSingleMoveOperation(t *testing.T) {
 			bson.M{"$set": bson.M{"user.a": "$user.a_tmp"}},
 			bson.M{"$unset": "user.a_tmp"},
 		},
-		OperationSpec{
-			Operation: MoveOperation,
+		operation.Spec{
+			Operation: operation.MoveOperation,
 			Path:      path,
 			Value:     value,
 			From:      from,
@@ -124,14 +126,14 @@ func TestSingleMoveOperation(t *testing.T) {
 func TestSingleCopyOperation(t *testing.T) {
 	t.Parallel()
 
-	path := Path("user.a")
-	from := Path("user.a_tmp")
+	path := operation.Path("user.a")
+	from := operation.Path("user.a_tmp")
 	value := 1.2
 
 	ExecuteSuccessTest(t, Parser{},
 		bson.A{bson.M{"$set": bson.M{"user.a": "$user.a_tmp"}}},
-		OperationSpec{
-			Operation: CopyOperation,
+		operation.Spec{
+			Operation: operation.CopyOperation,
 			Path:      path,
 			Value:     value,
 			From:      from,
@@ -143,14 +145,14 @@ func TestInvalidOperation(t *testing.T) {
 	t.Parallel()
 
 	name := "MustFailPolicy"
-	path := Path("user.a")
+	path := operation.Path("user.a")
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
+			policies: []Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
-		errs.NewErrUnexpectedInput(OperationSpec{}),
-		OperationSpec{},
+		errs.NewErrUnexpectedInput(operation.Spec{}),
+		operation.Spec{},
 	)
 }
 
@@ -158,15 +160,46 @@ func TestPolicyViolation(t *testing.T) {
 	t.Parallel()
 
 	name := "MustFailPolicy"
-	path := Path("user.a")
+	path := operation.Path("user.a")
 
 	ExecuteFailedTest(t,
 		Parser{
-			[]Policy{DisallowPathPolicy{Details: name, Path: path}},
+			policies: []Policy{DisallowPathPolicy{Details: name, Path: path}},
 		},
 		errs.NewErrPolicyViolation(name),
-		OperationSpec{Operation: RemoveOperation, Path: path},
+		operation.Spec{Operation: operation.RemoveOperation, Path: path},
 	)
+}
+
+func TestSmartParsing(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewSmartParser(reflect.TypeOf(DummyDoc{}))
+	require.NoError(t, err)
+
+	t.Run("ValidOperation_Success", func(t *testing.T) {
+		t.Parallel()
+
+		query, err := parser.Parse(operation.Spec{
+			Operation: operation.ReplaceOperation,
+			Path:      "a",
+			Value:     "new",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, query)
+	})
+
+	t.Run("InvalidOperation_Fail", func(t *testing.T) {
+		t.Parallel()
+
+		query, err := parser.Parse(operation.Spec{
+			Operation: operation.ReplaceOperation,
+			Path:      "_id",
+			Value:     "new",
+		})
+		require.Error(t, err)
+		require.Nil(t, query)
+	})
 }
 
 func TestInterpretation(t *testing.T) {
@@ -212,7 +245,7 @@ func testRemoveOperation(t *testing.T, collection *mongo.Collection, item DummyD
 	parser := Parser{}
 	after := options.After
 	updateOptions := &options.FindOneAndUpdateOptions{ReturnDocument: &after}
-	query, err := parser.Parse(OperationSpec{Operation: RemoveOperation, Path: "a"})
+	query, err := parser.Parse(operation.Spec{Operation: operation.RemoveOperation, Path: "a"})
 	require.NoError(t, err)
 
 	item.A = ""
@@ -234,7 +267,7 @@ func testAddOperation(t *testing.T, collection *mongo.Collection, item DummyDoc)
 	after := options.After
 	updateOptions := &options.FindOneAndUpdateOptions{ReturnDocument: &after}
 	value := 3
-	query, err := parser.Parse(OperationSpec{Operation: AddOperation, Path: "d", Value: value})
+	query, err := parser.Parse(operation.Spec{Operation: operation.AddOperation, Path: "d", Value: value})
 	require.NoError(t, err)
 
 	item.D = append(item.D, value)
@@ -256,7 +289,7 @@ func testReplaceOperation(t *testing.T, collection *mongo.Collection, item Dummy
 	after := options.After
 	updateOptions := &options.FindOneAndUpdateOptions{ReturnDocument: &after}
 	value := float32(99.99)
-	query, err := parser.Parse(OperationSpec{Operation: ReplaceOperation, Path: "c", Value: value})
+	query, err := parser.Parse(operation.Spec{Operation: operation.ReplaceOperation, Path: "c", Value: value})
 	require.NoError(t, err)
 
 	item.C = 99.99
@@ -277,7 +310,7 @@ func testMoveOperation(t *testing.T, collection *mongo.Collection, item DummyDoc
 	parser := Parser{}
 	after := options.After
 	updateOptions := &options.FindOneAndUpdateOptions{ReturnDocument: &after}
-	query, err := parser.Parse(OperationSpec{Operation: MoveOperation, Path: "a", From: "b"})
+	query, err := parser.Parse(operation.Spec{Operation: operation.MoveOperation, Path: "a", From: "b"})
 	require.NoError(t, err)
 
 	item.A = item.B
@@ -299,7 +332,7 @@ func testCopyOperation(t *testing.T, collection *mongo.Collection, item DummyDoc
 	parser := Parser{}
 	after := options.After
 	updateOptions := &options.FindOneAndUpdateOptions{ReturnDocument: &after}
-	query, err := parser.Parse(OperationSpec{Operation: CopyOperation, Path: "a", From: "b"})
+	query, err := parser.Parse(operation.Spec{Operation: operation.CopyOperation, Path: "a", From: "b"})
 	require.NoError(t, err)
 
 	item.A = item.B

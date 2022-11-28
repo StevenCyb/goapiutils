@@ -3,6 +3,7 @@ module github.com/StevenCyb/goapiutils
 go 1.18
 
 require (
+	github.com/g8rswimmer/error-chain v1.0.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.7.1

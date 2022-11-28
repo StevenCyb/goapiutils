@@ -1,4 +1,4 @@
-package jsonpatch
+package operation
 
 import (
 	"testing"
@@ -51,6 +51,7 @@ func TestComparePath(t *testing.T) {
 	require.True(t, Path("a.b.*").Equal(Path("a.b.c")))
 	require.True(t, Path("*.*").Equal(Path("a.b")))
 	require.True(t, Path("a.*").Equal(Path("a.0")))
+	require.False(t, Path("a.*.b").Equal(Path("a.b.c")))
 	require.False(t, Path("*.*").Equal(Path("x")))
 	require.False(t, Path("*.*").Equal(Path("x.y.z")))
 }

@@ -1,5 +1,14 @@
-package jsonpatch
+package operation
 
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
+var ErrUnknownOperation = errors.New("unknown operation")
+
+// Operation represents an JSON patch operation.
 type Operation string
 
 const (
@@ -20,8 +29,23 @@ const (
 	CopyOperation Operation = "copy"
 )
 
-// OperationSpec specify an path operation.
-type OperationSpec struct {
+// FromString return operation that matches string or nil with error if no match.
+func FromString(operationString string) (*Operation, error) {
+	operation := Operation(strings.ToLower(operationString))
+
+	if operation != RemoveOperation &&
+		operation != AddOperation &&
+		operation != ReplaceOperation &&
+		operation != MoveOperation &&
+		operation != CopyOperation {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownOperation, operationString)
+	}
+
+	return &operation, nil
+}
+
+// Spec specify an path operation.
+type Spec struct {
 	From      Path        `json:"from"`
 	Path      Path        `json:"path"`
 	Value     interface{} `json:"value"`
@@ -29,42 +53,42 @@ type OperationSpec struct {
 }
 
 // Valid check if operation is valid.
-func (o OperationSpec) Valid() bool {
-	if o.Operation == "" {
+func (s Spec) Valid() bool {
+	if s.Operation == "" {
 		return false
 	}
 
-	switch o.Operation {
+	switch s.Operation {
 	case RemoveOperation:
-		if !o.Path.Valid() {
+		if !s.Path.Valid() {
 			return false
 		}
 	case AddOperation:
-		if !o.Path.Valid() {
+		if !s.Path.Valid() {
 			return false
-		} else if o.Value == nil {
+		} else if s.Value == nil {
 			return false
 		}
 	case ReplaceOperation:
-		if !o.Path.Valid() {
+		if !s.Path.Valid() {
 			return false
-		} else if o.Value == nil {
+		} else if s.Value == nil {
 			return false
 		}
 	case MoveOperation:
-		if !o.Path.Valid() {
+		if !s.Path.Valid() {
 			return false
 		}
 
-		if !o.From.Valid() {
+		if !s.From.Valid() {
 			return false
 		}
 	case CopyOperation:
-		if !o.Path.Valid() {
+		if !s.Path.Valid() {
 			return false
 		}
 
-		if !o.From.Valid() {
+		if !s.From.Valid() {
 			return false
 		}
 	default:

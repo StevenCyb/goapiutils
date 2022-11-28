@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+
+	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 )
 
 // Policy specifies the interface for an policy.
 type Policy interface {
 	GetDetails() string
-	Test(operationSpec OperationSpec) bool
+	Test(operationSpec operation.Spec) bool
 }
 
 // DisallowPathPolicy specifies a path that is not allowed.
 type DisallowPathPolicy struct {
 	Details string
-	Path    Path
+	Path    operation.Path
 }
 
 // GetDetails returns the name of this policy.
@@ -24,15 +26,15 @@ func (d DisallowPathPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (d DisallowPathPolicy) Test(operationSpec OperationSpec) bool {
+func (d DisallowPathPolicy) Test(operationSpec operation.Spec) bool {
 	return !d.Path.Equal(operationSpec.Path)
 }
 
 // DisallowOperationOnPathPolicy disallows specified operations on path.
 type DisallowOperationOnPathPolicy struct {
 	Details    string
-	Path       Path
-	Operations []Operation
+	Path       operation.Path
+	Operations []operation.Operation
 }
 
 // GetDetails returns the name of this policy.
@@ -41,7 +43,7 @@ func (d DisallowOperationOnPathPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
+func (d DisallowOperationOnPathPolicy) Test(operationSpec operation.Spec) bool {
 	if !d.Path.Equal(operationSpec.Path) {
 		return true
 	}
@@ -58,7 +60,7 @@ func (d DisallowOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
 // ForceTypeOnPathPolicy forces the value of a specif path to be from given type.
 type ForceTypeOnPathPolicy struct {
 	Details string
-	Path    Path
+	Path    operation.Path
 	Kind    reflect.Kind
 }
 
@@ -68,7 +70,7 @@ func (f ForceTypeOnPathPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (f ForceTypeOnPathPolicy) Test(operationSpec OperationSpec) bool {
+func (f ForceTypeOnPathPolicy) Test(operationSpec operation.Spec) bool {
 	if !f.Path.Equal(operationSpec.Path) {
 		return true
 	}
@@ -79,7 +81,7 @@ func (f ForceTypeOnPathPolicy) Test(operationSpec OperationSpec) bool {
 // ForceRegexMatchPolicy forces the value of a specif path to match expression.
 type ForceRegexMatchPolicy struct {
 	Details    string
-	Path       Path
+	Path       operation.Path
 	Expression regexp.Regexp
 }
 
@@ -89,7 +91,7 @@ func (f ForceRegexMatchPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
+func (f ForceRegexMatchPolicy) Test(operationSpec operation.Spec) bool {
 	if !f.Path.Equal(operationSpec.Path) {
 		return true
 	}
@@ -100,7 +102,7 @@ func (f ForceRegexMatchPolicy) Test(operationSpec OperationSpec) bool {
 // StrictPathPolicy forces path to be strictly one of.
 type StrictPathPolicy struct {
 	Details string
-	Path    []Path
+	Path    []operation.Path
 }
 
 // GetDetails returns the name of this policy.
@@ -109,7 +111,7 @@ func (s StrictPathPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
+func (s StrictPathPolicy) Test(operationSpec operation.Spec) bool {
 	for _, path := range s.Path {
 		if path.Equal(operationSpec.Path) {
 			return true
@@ -122,8 +124,8 @@ func (s StrictPathPolicy) Test(operationSpec OperationSpec) bool {
 // ForceOperationOnPathPolicy force specified operation on path.
 type ForceOperationOnPathPolicy struct {
 	Details   string
-	Path      Path
-	Operation Operation
+	Path      operation.Path
+	Operation operation.Operation
 }
 
 // GetDetails returns the name of this policy.
@@ -132,7 +134,7 @@ func (d ForceOperationOnPathPolicy) GetDetails() string {
 }
 
 // Test if given operation specification is valid or not.
-func (d ForceOperationOnPathPolicy) Test(operationSpec OperationSpec) bool {
+func (d ForceOperationOnPathPolicy) Test(operationSpec operation.Spec) bool {
 	if !d.Path.Equal(operationSpec.Path) {
 		return true
 	}
