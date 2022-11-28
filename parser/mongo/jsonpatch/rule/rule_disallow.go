@@ -1,3 +1,4 @@
+//nolint:ireturn
 package rule
 
 import (
@@ -6,32 +7,29 @@ import (
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 )
 
-// DisallowRule uses the tag `jp_disallow` and
-// defines if operations on field are disallowed.
+// DisallowRule defines if operations on field are disallowed.
 type DisallowRule struct {
-	disallow bool
+	Disallow bool
 }
 
-// Tag returns tag of the rule.
-func (d DisallowRule) Tag() string {
-	return "jp_disallow"
-}
-
-// UseValue initializes the rule for specified field.
-func (d *DisallowRule) UseValue(path operation.Path, _ reflect.Kind, instance interface{}, value string) error {
-	disallow, err := getBoolIfNotEmpty(value, string(path), d.Tag())
+// NewInstance instantiate new rule instance for field.
+func (d *DisallowRule) NewInstance(path string, _ reflect.Kind, instance interface{}, value string) (Rule, error) {
+	disallow, err := getBoolIfNotEmpty(value, path, "DisallowRule")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	d.disallow = *disallow
-
-	return nil
+	return &DisallowRule{Disallow: *disallow}, nil
 }
 
-// Apply rule on given patch operation specification.
-func (d DisallowRule) Apply(operationSpec operation.Spec) error {
-	if !d.disallow {
+// NewInheritInstance instantiate new rule instance based on given rule.
+func (d *DisallowRule) NewInheritInstance(_ string, _ reflect.Kind, _ interface{}) (Rule, error) {
+	return &DisallowRule{Disallow: d.Disallow}, nil
+}
+
+// Validate applies rule on given patch operation specification.
+func (d DisallowRule) Validate(operationSpec operation.Spec) error {
+	if !d.Disallow {
 		return nil
 	}
 

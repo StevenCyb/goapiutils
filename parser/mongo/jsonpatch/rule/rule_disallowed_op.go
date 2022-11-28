@@ -1,3 +1,4 @@
+//nolint:ireturn
 package rule
 
 import (
@@ -6,34 +7,31 @@ import (
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 )
 
-// DisallowedOperationsRule uses the tag `jp_op_disallowed` and
-// defines witch patch operations are disallowed for the field.
+// DisallowedOperationsRule defines witch patch operations are disallowed for the field.
 type DisallowedOperationsRule struct {
-	operations []operation.Operation
+	Operations []operation.Operation
 }
 
-// Tag returns tag of the rule.
-func (d DisallowedOperationsRule) Tag() string {
-	return "jp_op_disallowed"
-}
-
-// UseValue initializes the rule for specified field.
-func (d *DisallowedOperationsRule) UseValue(
-	path operation.Path, _ reflect.Kind, instance interface{}, value string,
-) error {
-	operations, err := getOperationsIfNotEmpty(value, string(path), d.Tag())
+// NewInstance instantiate new rule instance for field.
+func (d *DisallowedOperationsRule) NewInstance(
+	path string, _ reflect.Kind, _ interface{}, value string,
+) (Rule, error) {
+	operations, err := getOperationsIfNotEmpty(value, path, "DisallowedOperationsRule")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	d.operations = *operations
-
-	return nil
+	return &DisallowedOperationsRule{Operations: *operations}, nil
 }
 
-// Apply rule on given patch operation specification.
-func (d DisallowedOperationsRule) Apply(operationSpec operation.Spec) error {
-	for _, operation := range d.operations {
+// NewInheritInstance instantiate new rule instance based on given rule.
+func (d *DisallowedOperationsRule) NewInheritInstance(_ string, _ reflect.Kind, _ interface{}) (Rule, error) {
+	return &DisallowedOperationsRule{Operations: d.Operations}, nil
+}
+
+// Validate applies rule on given patch operation specification.
+func (d DisallowedOperationsRule) Validate(operationSpec operation.Spec) error {
+	for _, operation := range d.Operations {
 		if operation == operationSpec.Operation {
 			return OperationNotAllowedError{operation: operation}
 		}

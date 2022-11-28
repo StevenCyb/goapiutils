@@ -1,3 +1,4 @@
+//nolint:ireturn
 package rule
 
 import (
@@ -11,34 +12,36 @@ import (
 
 var ErrMaxRuleViolation = errors.New("value greater then specified")
 
-// MaxRule uses the tag `jp_max` and defines the maximum size/value:
+// MaxRule defines the maximum size/value:
 /*
  * Applies on len for Array, Chan, Map, Slice and String.
  * Applies on value for any numeric type.
  */
 type MaxRule struct {
-	max float64
+	Max float64
 }
 
-// Tag returns tag of the rule.
-func (m MaxRule) Tag() string {
-	return "jp_max"
-}
-
-// UseValue initializes the rule for specified field.
-func (m *MaxRule) UseValue(path operation.Path, _ reflect.Kind, instance interface{}, value string) error {
-	max, err := getFloat64IfNotEmpty(value, string(path), m.Tag())
+// NewInstance instantiate new rule instance for field.
+func (m *MaxRule) NewInstance(path string, _ reflect.Kind, _ interface{}, value string) (Rule, error) {
+	max, err := getFloat64IfNotEmpty(value, path, "MaxRule")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	m.max = *max
-
-	return nil
+	return &MaxRule{
+		Max: *max,
+	}, nil
 }
 
-// Apply rule on given patch operation specification.
-func (m MaxRule) Apply(operationSpec operation.Spec) error {
+// NewInheritInstance instantiate new rule instance based on given rule.
+func (m *MaxRule) NewInheritInstance(_ string, _ reflect.Kind, _ interface{}) (Rule, error) {
+	return &MaxRule{
+		Max: m.Max,
+	}, nil
+}
+
+// Validate applies rule on given patch operation specification.
+func (m MaxRule) Validate(operationSpec operation.Spec) error {
 	var (
 		kind = reflect.TypeOf(operationSpec.Value).Kind()
 		size float64
@@ -48,7 +51,7 @@ func (m MaxRule) Apply(operationSpec operation.Spec) error {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		size = float64(reflect.ValueOf(operationSpec.Value).Len())
 	default:
-		converted, err := strconv.ParseFloat(fmt.Sprint(operationSpec.Value), 64)
+		converted, err := strconv.ParseFloat(fmt.Sprint(operationSpec.Value), 64) //nolint:gomnd
 		if err != nil {
 			return fmt.Errorf("converting failed: %w", err)
 		}
@@ -56,8 +59,8 @@ func (m MaxRule) Apply(operationSpec operation.Spec) error {
 		size = converted
 	}
 
-	if m.max < size {
-		return GreaterThenError{ref: m.max, value: size}
+	if m.Max < size {
+		return GreaterThenError{ref: m.Max, value: size}
 	}
 
 	return nil

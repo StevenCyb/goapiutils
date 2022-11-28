@@ -14,11 +14,11 @@ func TestRuleDisallow(t *testing.T) {
 	t.Run("AllowedCase", func(t *testing.T) {
 		t.Parallel()
 
-		rule := DisallowRule{}
-		err := rule.UseValue("a", reflect.Bool, nil, "false")
+		var rule Rule = &DisallowRule{}
+		rule, err := rule.NewInstance("a", reflect.Bool, nil, "false")
 
 		require.NoError(t, err)
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Path: "a.c",
 		}))
 	})
@@ -26,11 +26,11 @@ func TestRuleDisallow(t *testing.T) {
 	t.Run("ForbiddenCase", func(t *testing.T) {
 		t.Parallel()
 
-		rule := DisallowRule{}
-		err := rule.UseValue("a", reflect.Bool, nil, "true")
+		var rule Rule = &DisallowRule{}
+		rule, err := rule.NewInstance("a", reflect.Bool, nil, "true")
 
 		require.NoError(t, err)
-		require.Error(t, rule.Apply(operation.Spec{
+		require.Error(t, rule.Validate(operation.Spec{
 			Path: "a.b",
 		}))
 	})

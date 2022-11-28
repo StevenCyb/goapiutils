@@ -11,21 +11,21 @@ import (
 func TestRuleDisallowedOperation(t *testing.T) {
 	t.Parallel()
 
-	rule := DisallowedOperationsRule{}
-	err := rule.UseValue("a", reflect.Array, nil, "replace,move")
+	var rule Rule = &DisallowedOperationsRule{}
+	rule, err := rule.NewInstance("a", reflect.Array, nil, "replace,move")
 
 	require.NoError(t, err)
 
 	t.Run("AllowedCase", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Operation: operation.AddOperation,
 		}))
 	})
 
 	t.Run("ForbiddenCase", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, rule.Apply(operation.Spec{
+		require.Error(t, rule.Validate(operation.Spec{
 			Operation: operation.ReplaceOperation,
 		}))
 	})

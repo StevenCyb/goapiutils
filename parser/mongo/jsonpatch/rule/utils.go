@@ -20,7 +20,7 @@ var (
 func getBoolIfNotEmpty(valueString, path, key string) (*bool, error) {
 	value, err := strconv.ParseBool(valueString)
 	if err != nil {
-		return nil, fmt.Errorf("tag `%s` at '%s': %w", key, path, ErrInvalidBool)
+		return nil, fmt.Errorf("rule `%s` at '%s': %w", key, path, ErrInvalidBool)
 	}
 
 	return &value, nil
@@ -28,9 +28,9 @@ func getBoolIfNotEmpty(valueString, path, key string) (*bool, error) {
 
 // getFloat64IfNotEmpty parse string to float64 or throw error.
 func getFloat64IfNotEmpty(valueString, path, key string) (*float64, error) {
-	value, err := strconv.ParseFloat(valueString, 64)
+	value, err := strconv.ParseFloat(valueString, 64) //nolint:gomnd
 	if err != nil {
-		return nil, fmt.Errorf("tag `%s` at '%s': %w", key, path, ErrInvalidNumber)
+		return nil, fmt.Errorf("rule `%s` at '%s': %w", key, path, ErrInvalidNumber)
 	}
 
 	return &value, nil
@@ -40,7 +40,7 @@ func getFloat64IfNotEmpty(valueString, path, key string) (*float64, error) {
 func getRegexpIfNotEmpty(valueString, path, key string) (*regexp.Regexp, error) {
 	value, err := regexp.Compile(valueString)
 	if err != nil {
-		return nil, fmt.Errorf("tag `%s` at '%s': %w", key, path, err)
+		return nil, fmt.Errorf("rule `%s` at '%s': %w", key, path, err)
 	}
 
 	return value, nil
@@ -55,7 +55,7 @@ func getOperationsIfNotEmpty(valueString, path, key string) (*[]operation.Operat
 	for _, value := range values {
 		operation, err := operation.FromString(value)
 		if err != nil {
-			return nil, fmt.Errorf("tag `%s` at '%s': %w", key, path, err)
+			return nil, fmt.Errorf("rule `%s` at '%s': %w", key, path, err)
 		}
 
 		operations = append(operations, *operation)

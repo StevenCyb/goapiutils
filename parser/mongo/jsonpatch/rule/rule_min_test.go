@@ -12,27 +12,27 @@ import (
 func TestRuleMin(t *testing.T) {
 	t.Parallel()
 
-	rule := MinRule{}
-	err := rule.UseValue("a", reflect.Array, nil, "3")
+	var rule Rule = &MinRule{}
+	rule, err := rule.NewInstance("a", reflect.Array, nil, "3")
 
 	require.NoError(t, err)
 
 	t.Run("AllowedCase", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Value: 3,
 		}))
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Value: uint64(3),
 		}))
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Value: 3.2,
 		}))
 	})
 
 	t.Run("ForbiddenCase", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, rule.Apply(operation.Spec{
+		require.Error(t, rule.Validate(operation.Spec{
 			Value: 1.4,
 		}))
 	})

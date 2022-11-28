@@ -1,3 +1,4 @@
+//nolint:ireturn
 package rule
 
 import (
@@ -10,24 +11,26 @@ import (
 // This rules checks for type and name matches to prevent input for
 // unknown fields or to violate types.
 type MatchingKindRule struct {
-	instance interface{}
+	Instance interface{}
 }
 
-// Tag returns tag of the rule.
-func (m MatchingKindRule) Tag() string {
-	return "type"
+// UseValue instantiate new rule instance for field.
+func (m *MatchingKindRule) NewInstance(_ string, _ reflect.Kind, instance interface{}, _ string) (Rule, error) {
+	return &MatchingKindRule{
+		Instance: instance,
+	}, nil
 }
 
-// UseValue initializes the rule for specified field.
-func (m *MatchingKindRule) UseValue(_ operation.Path, _ reflect.Kind, instance interface{}, _ string) error {
-	m.instance = instance
-
-	return nil
+// NewInheritInstance instantiate new rule instance based on given rule.
+func (m *MatchingKindRule) NewInheritInstance(_ string, _ reflect.Kind, instance interface{}) (Rule, error) {
+	return &MatchingKindRule{
+		Instance: instance,
+	}, nil
 }
 
-// Apply rule on given patch operation specification.
-func (m MatchingKindRule) Apply(operationSpec operation.Spec) error {
-	return m.deepCompareType("root value", m.instance, operationSpec.Value)
+// Validate applies rule on given patch operation specification.
+func (m MatchingKindRule) Validate(operationSpec operation.Spec) error {
+	return m.deepCompareType("root value", m.Instance, operationSpec.Value)
 }
 
 // deepCompareType checks recursively one interface against a reference.

@@ -11,21 +11,21 @@ import (
 func TestRuleExpression(t *testing.T) {
 	t.Parallel()
 
-	rule := ExpressionRule{}
-	err := rule.UseValue("a", reflect.Array, nil, "^[a-z]+$")
+	var rule Rule = &ExpressionRule{}
+	rule, err := rule.NewInstance("a", reflect.Array, nil, "^[a-z]+$")
 
 	require.NoError(t, err)
 
 	t.Run("AllowedCase", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, rule.Apply(operation.Spec{
+		require.NoError(t, rule.Validate(operation.Spec{
 			Value: "hello",
 		}))
 	})
 
 	t.Run("ForbiddenCase", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, rule.Apply(operation.Spec{
+		require.Error(t, rule.Validate(operation.Spec{
 			Value: "123",
 		}))
 	})
