@@ -63,7 +63,7 @@ func (p Parser) generateMongoQuery(operationSpecs ...OperationSpec) (bson.A, err
 				}
 
 				path := paramsMap["path"]
-				index, _ := strconv.ParseInt(paramsMap["index"], 10, 64)
+				index, _ := strconv.ParseInt(paramsMap["index"], 10, 64) //nolint:gomnd
 
 				element = bson.M{
 					"$set": bson.M{
