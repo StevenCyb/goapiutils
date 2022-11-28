@@ -16,9 +16,9 @@ const (
 // Validator interprets reference to validate JSON patch operations.
 type Validator struct {
 	knownTagRules map[string]rule.Rule
-	rules         map[operation.Path][]rule.Rule
-	wildcardRules map[operation.Path][]rule.Rule
-	generalRules  []rule.Rule
+	rules         map[operation.Path]map[string]rule.Rule
+	wildcardRules map[operation.Path]map[string]rule.Rule
+	generalRules  map[string]rule.Rule
 }
 
 // RegisterRule register addition rule for specific key (must have prefix `jp_`).
@@ -32,6 +32,10 @@ func (v *Validator) RegisterRule(key string, rule rule.Rule) error {
 	}
 
 	if _, exists := v.knownTagRules[key]; exists {
+		return ErrDuplicateRuleTags
+	}
+
+	if _, exists := v.generalRules[key]; exists {
 		return ErrDuplicateRuleTags
 	}
 
@@ -49,6 +53,8 @@ func (v Validator) Validate(operationSpec operation.Spec) error {
 				return fmt.Errorf("operation no allowed: %w", err)
 			}
 		}
+
+		return nil
 	}
 
 	for path, rules := range v.wildcardRules {
@@ -60,19 +66,19 @@ func (v Validator) Validate(operationSpec operation.Spec) error {
 				}
 			}
 
-			break
+			return nil
 		}
 	}
 
-	return nil
+	return UnknownPathError{path: string(operationSpec.Path)}
 }
 
 // UseReference interpret given reference to model rule set.
 func (v *Validator) UseReference(referenceType reflect.Type) error {
-	return v.parseReference(referenceType, "", nil)
+	return v.parseReference(referenceType, "", map[string]rule.Rule{})
 }
 
-func (v *Validator) parseReference(objectType reflect.Type, path string, inheritedRules []rule.Rule) error {
+func (v *Validator) parseReference(objectType reflect.Type, path string, inheritedRules map[string]rule.Rule) error {
 	var err error
 
 	if objectType == nil {
@@ -95,13 +101,14 @@ func (v *Validator) parseReference(objectType reflect.Type, path string, inherit
 	return err
 }
 
-func (v *Validator) parseReferenceIterable(objectType reflect.Type, path string, inheritedRules []rule.Rule) error {
+func (v *Validator) parseReferenceIterable(
+	objectType reflect.Type, path string, inheritedRules map[string]rule.Rule,
+) error {
 	var (
-		zeroValue         reflect.Value
-		valueType         = objectType.Elem()
-		kind              = valueType.Kind()
-		err               error
-		newInheritedRules []rule.Rule
+		zeroValue reflect.Value
+		valueType = objectType.Elem()
+		kind      = valueType.Kind()
+		err       error
 	)
 
 	switch kind { //nolint:exhaustive
@@ -117,26 +124,27 @@ func (v *Validator) parseReferenceIterable(objectType reflect.Type, path string,
 		zeroValue = reflect.Zero(valueType)
 	}
 
-	if newInheritedRules, err = v.addRule(path+"*", kind, "", zeroValue.Interface(), inheritedRules); err != nil {
+	if err = v.addRule(path+"*", kind, "", zeroValue.Interface(), &inheritedRules); err != nil {
 		return err
 	}
 
-	if err := v.parseReference(zeroValue.Type(), path+"*", newInheritedRules); err != nil {
+	if err := v.parseReference(zeroValue.Type(), path+"*", inheritedRules); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (v *Validator) parseReferenceStruct(objectType reflect.Type, path string, inheritedRules []rule.Rule) error {
+func (v *Validator) parseReferenceStruct(
+	objectType reflect.Type, path string, inheritedRules map[string]rule.Rule,
+) error {
 	for i := 0; i < objectType.NumField(); i++ {
 		var (
-			zeroValue         reflect.Value
-			field             = objectType.Field(i)
-			bsonName          = field.Tag.Get("bson")
-			kind              = field.Type.Kind()
-			err               error
-			newInheritedRules []rule.Rule
+			zeroValue reflect.Value
+			field     = objectType.Field(i)
+			bsonName  = field.Tag.Get("bson")
+			kind      = field.Type.Kind()
+			err       error
 		)
 
 		if bsonName == "" || bsonName == "-" {
@@ -156,9 +164,7 @@ func (v *Validator) parseReferenceStruct(objectType reflect.Type, path string, i
 			zeroValue = reflect.Zero(field.Type)
 		}
 
-		if newInheritedRules, err = v.addRule(
-			path+bsonName, kind, field.Tag, zeroValue.Interface(), inheritedRules,
-		); err != nil {
+		if err = v.addRule(path+bsonName, kind, field.Tag, zeroValue.Interface(), &inheritedRules); err != nil {
 			return err
 		}
 
@@ -167,7 +173,7 @@ func (v *Validator) parseReferenceStruct(objectType reflect.Type, path string, i
 			kind == reflect.Array ||
 			kind == reflect.Ptr ||
 			kind == reflect.Map {
-			if err := v.parseReference(zeroValue.Type(), path+bsonName, newInheritedRules); err != nil {
+			if err := v.parseReference(zeroValue.Type(), path+bsonName, inheritedRules); err != nil {
 				return err
 			}
 		}
@@ -177,38 +183,36 @@ func (v *Validator) parseReferenceStruct(objectType reflect.Type, path string, i
 }
 
 func (v *Validator) addRule(
-	path string, kind reflect.Kind, tag reflect.StructTag, instance interface{}, inheritedRules []rule.Rule,
-) ([]rule.Rule, error) {
+	path string, kind reflect.Kind, tag reflect.StructTag, instance interface{}, inheritedRules *map[string]rule.Rule,
+) error {
 	if kind == reflect.Invalid {
-		return nil, InvalidTypeError{path: path}
+		return InvalidTypeError{path: path}
 	}
 
 	var (
-		rulesToInherit = []rule.Rule{}
-		rules          = []rule.Rule{}
+		err   error
+		rules = map[string]rule.Rule{}
 	)
 
-	for _, rule := range v.generalRules {
-		newRule, err := rule.NewInstance(path, kind, instance, "")
+	for name, rule := range *inheritedRules {
+		rules[name], err = rule.NewInheritInstance(path, kind, instance)
 		if err != nil {
-			return nil, fmt.Errorf("could not instantiate rule on '%s': %w", path, err)
+			return fmt.Errorf("could not inherit rule on '%s': %w", path, err)
 		}
+	}
 
-		rules = append(rules, newRule)
+	for name, rule := range v.generalRules {
+		rules[name], err = rule.NewInstance(path, kind, instance, "")
+		if err != nil {
+			return fmt.Errorf("could not instantiate rule on '%s': %w", path, err)
+		}
 	}
 
 	if tag != "" {
-		var err error
-
-		rulesToInherit, err = v.composeRulesFromTags(path, kind, instance, tag, &rules)
+		err := v.composeRulesFromTags(path, kind, instance, tag, &rules, inheritedRules)
 		if err != nil {
-			return nil, err
+			return err
 		}
-	}
-
-	err := v.composeRulesFromHeredity(path, kind, instance, &rules, inheritedRules)
-	if err != nil {
-		return nil, err
 	}
 
 	if strings.Contains(path, "*") {
@@ -217,14 +221,13 @@ func (v *Validator) addRule(
 		v.rules[operation.Path(path)] = rules
 	}
 
-	return rulesToInherit, nil
+	return nil
 }
 
 func (v *Validator) composeRulesFromTags(
 	path string, kind reflect.Kind, instance interface{},
-	tag reflect.StructTag, rules *[]rule.Rule,
-) ([]rule.Rule, error) {
-	rulesToInherit := []rule.Rule{}
+	tag reflect.StructTag, rules, inheritedRules *map[string]rule.Rule,
+) error {
 	tagsToInherit := []string{}
 
 	if value := tag.Get("jp_inherit"); value != "" {
@@ -232,7 +235,11 @@ func (v *Validator) composeRulesFromTags(
 
 		for _, tagToInherit := range split {
 			if tag.Get(tagToInherit) == "" {
-				return nil, InheritNonExistingTagError{name: tagToInherit}
+				return InheritNonExistingTagError{name: tagToInherit}
+			}
+
+			if _, exist := v.knownTagRules[tagToInherit]; !exist {
+				return UnknownRuleError{name: tagToInherit}
 			}
 
 			tagsToInherit = append(tagsToInherit, tagToInherit)
@@ -248,45 +255,18 @@ func (v *Validator) composeRulesFromTags(
 		if use {
 			newRule, err := rule.NewInstance(path, kind, instance, value)
 			if err != nil {
-				return nil, fmt.Errorf("could not instantiate rule on '%s': %w", path, err)
+				return fmt.Errorf("could not instantiate rule on '%s': %w", path, err)
 			}
 
-			*rules = append(*rules, newRule)
+			(*rules)[name] = newRule
 
 			for _, tagToInherit := range tagsToInherit {
 				if tagToInherit == name {
-					rulesToInherit = append(rulesToInherit, newRule)
+					(*inheritedRules)[name] = newRule
 
 					break
 				}
 			}
-		}
-	}
-
-	return rulesToInherit, nil
-}
-
-func (v *Validator) composeRulesFromHeredity(
-	path string, kind reflect.Kind, instance interface{}, rules *[]rule.Rule, inheritedRules []rule.Rule,
-) error {
-	for _, inheritedRule := range inheritedRules {
-		found := false
-
-		for _, rule := range *rules {
-			if reflect.TypeOf(inheritedRule) == reflect.TypeOf(rule) {
-				found = true
-
-				break
-			}
-		}
-
-		if !found {
-			newInheritedRule, err := inheritedRule.NewInheritInstance(path, kind, instance)
-			if err != nil {
-				return fmt.Errorf("could not inherit rule on '%s': %w", path, err)
-			}
-
-			*rules = append(*rules, newInheritedRule)
 		}
 	}
 
@@ -296,8 +276,8 @@ func (v *Validator) composeRulesFromHeredity(
 // NewValidator create a new instance of validator using given reference.
 func NewValidator(referenceType reflect.Type) (*Validator, error) {
 	validator := Validator{
-		generalRules: []rule.Rule{
-			&rule.MatchingKindRule{},
+		generalRules: map[string]rule.Rule{
+			"jp_general_matching_kind": &rule.MatchingKindRule{},
 		},
 		knownTagRules: map[string]rule.Rule{
 			"jp_disallow":      &rule.DisallowRule{},
@@ -307,8 +287,8 @@ func NewValidator(referenceType reflect.Type) (*Validator, error) {
 			"jp_op_allowed":    &rule.AllowedOperationsRule{},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{},
 		},
-		rules:         map[operation.Path][]rule.Rule{},
-		wildcardRules: map[operation.Path][]rule.Rule{},
+		rules:         map[operation.Path]map[string]rule.Rule{},
+		wildcardRules: map[operation.Path]map[string]rule.Rule{},
 	}
 
 	err := validator.UseReference(referenceType)

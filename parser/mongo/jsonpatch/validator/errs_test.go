@@ -26,3 +26,10 @@ func TestInheritNonExistingTagError(t *testing.T) {
 	require.Equal(t, "defined tag 'test' for heredity does not exist",
 		InheritNonExistingTagError{name: "test"}.Error())
 }
+
+func TestUnknownPathError(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "defined path 'test' is unknown",
+		UnknownPathError{path: "test"}.Error())
+}

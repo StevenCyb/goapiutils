@@ -38,3 +38,12 @@ type InheritNonExistingTagError struct {
 func (i InheritNonExistingTagError) Error() string {
 	return fmt.Sprintf("defined tag '%s' for heredity does not exist", i.name)
 }
+
+// UnknownPathError indicate that defined path does not exist.
+type UnknownPathError struct {
+	path string
+}
+
+func (u UnknownPathError) Error() string {
+	return fmt.Sprintf("defined path '%s' is unknown", u.path)
+}
