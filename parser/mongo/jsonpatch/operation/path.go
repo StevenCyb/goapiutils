@@ -36,7 +36,7 @@ func (p Path) Equal(comparePath Path) bool {
 
 				continue
 			case stringPath[index+offset] != char:
-				break
+				return false
 			}
 		}
 
