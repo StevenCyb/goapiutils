@@ -537,7 +537,7 @@ func TestValidateTypecheckRule(t *testing.T) {
 
 		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 123})
 		require.Error(t, err)
-		require.Equal(t, "operation no allowed: 'root value' has invalid kind 'int', must be 'string'", err.Error())
+		require.Equal(t, "operation no allowed: 'a' has invalid kind 'int', must be 'string'", err.Error())
 	})
 }
 
