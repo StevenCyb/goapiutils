@@ -50,11 +50,11 @@ func TestQueryParsingWithDifferentLiterals(t *testing.T) {
 	t.Run("==OID_Success", func(t *testing.T) {
 		t.Parallel()
 
-		oid, err := primitive.ObjectIDFromHex("FFFFFFFFFFFF")
+		oid, err := primitive.ObjectIDFromHex("01234567890abcdef1234567")
 		require.NoError(t, err)
 		testutil.ExecuteSuccessTest(t,
 			NewParser(nil),
-			`_id==$oid(FFFFFFFFFFFF)`,
+			`_id==$oid(01234567890abcdef1234567)`,
 			bson.D{bson.E{Key: "_id", Value: oid}},
 		)
 	})
