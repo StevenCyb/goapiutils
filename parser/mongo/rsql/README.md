@@ -9,25 +9,25 @@ It's an URI-friendly syntax and therefore well suited for API's.
 
 RSQL supports multiple comparison operations.
 The following table gives an overview and a matrix that shows which literals can be used with the corresponding operators.
-| Operator | Description | Bool | String | Number | Array | Example |
-|----------|-------------------|------|--------|--------|-------|--------------------------------------------|
-| == | equal | ✔️ | ✔️ | ✔️ | ✔️ | `id=="A43Gd2fd3f32l"` |
-| != | not-equal | ✔️ | ✔️ | ✔️ | ✔️ | `status!="pending"` |
-| =gt= | greater-than | ❌ | ❌ | ✔️ | ❌ | `probability=gt=0.5` |
+| Operator | Description | Oid | Bool | String | Number | Array | Example |
+|----------|-------------|-----|------|--------|--------|-------|---------|
+| == | equal | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ | `_id==$oid(ABCDEF012345)` `title=="Hello World"` |
+| != | not-equal | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ | `status!="pending"` |
+| =gt= | greater-than | ❌ | ❌ | ❌ | ✔️ | ❌ | `probability=gt=0.5` |
 | =ge= | greater-than-qual | ❌ | ❌ | ✔️ | ❌ | `age=ge=18` |
-| =lt= | less-than | ❌ | ❌ | ✔️ | ❌ | `probability=lt=0.5` |
-| =le= | less-than-equal | ❌ | ❌ | ✔️ | ❌ | `high=le=1.60` |
-| =sw= | starts with | ❌ | ✔️ | ❌ | ❌ | `table=sw="DB_"` |
-| =ew= | ends with | ❌ | ✔️ | ❌ | ❌ | `file=ew=".jpg"` |
-| =in= | contains | ❌ | ❌ | ❌ | ✔️ | `log_level=in=("panic","error","warning")` |
-| =out= | not-contains | ❌ | ❌ | ❌ | ✔️ | `grade=out=(1,2)` |
+| =lt= | less-than | ❌ | ❌ | ❌ | ✔️ | ❌ | `probability=lt=0.5` |
+| =le= | less-than-equal | ❌ | ❌ | ❌ | ✔️ | ❌ | `high=le=1.60` |
+| =sw= | starts with | ❌ | ❌ | ✔️ | ❌ | ❌ | `table=sw="DB_"` |
+| =ew= | ends with | ❌ | ❌ | ✔️ | ❌ | ❌ | `file=ew=".jpg"` |
+| =in= | contains | ❌ | ❌ | ❌ | ❌ | ✔️ | `log_level=in=("panic","error","warning")` |
+| =out= | not-contains | ❌ | ❌ | ❌ | ❌ | ✔️ | `grade=out=(1,2)` |
 
 **NOTE:** _equal_ and _not equal_ can also be used to check if array contains an single element.
 E.g. document has `{roles: ["dev","maintainer","admin"]}`, than you can check if has _admin_ role by using `roles=="admin"`.
 
 Multiple comparisons can be combined with composite operators:
 | Operator | Description | Example |
-|----------|-------------|------------------------------------|
+|----------|-------------|---------|
 | ; | Logical AND | `gender=="female";age=ge=30` |
 | , | Logical OR | `level=="senior",level=="expert"` |
 

@@ -11,6 +11,7 @@ import (
 	"github.com/StevenCyb/goapiutils/parser/tokenizer"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestQueryParsingWithEmptyQuery_Success(t *testing.T) {
@@ -43,6 +44,18 @@ func TestQueryParsingWithDifferentLiterals(t *testing.T) {
 			NewParser(nil),
 			`firstName=="steven"`,
 			bson.D{bson.E{Key: "firstName", Value: "steven"}},
+		)
+	})
+
+	t.Run("==OID_Success", func(t *testing.T) {
+		t.Parallel()
+
+		oid, err := primitive.ObjectIDFromHex("FFFFFFFFFFFF")
+		require.NoError(t, err)
+		testutil.ExecuteSuccessTest(t,
+			NewParser(nil),
+			`_id==$oid(FFFFFFFFFFFF)`,
+			bson.D{bson.E{Key: "_id", Value: oid}},
 		)
 	})
 

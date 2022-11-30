@@ -10,6 +10,7 @@ import (
 	"github.com/StevenCyb/goapiutils/parser/tokenizer"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Types that are used in this parser.
@@ -25,6 +26,7 @@ const (
 	ArrayCompareOperatorType             tokenizer.Type = "ARRAY_COMPARE_OPERATOR"
 	BoolLiteralType                      tokenizer.Type = "BOOL_LITERAL"
 	QuotedStringLiteralType              tokenizer.Type = "QUOTED_STRING_LITERAL"
+	OidLiteralType                       tokenizer.Type = "OID_LITERAL"
 	FieldNameType                        tokenizer.Type = "FIELD_NAME"
 	NumberLiteralType                    tokenizer.Type = "NUMERIC_LITERAL"
 
@@ -43,6 +45,7 @@ var specialEncode = map[string]string{
 	`=`: "%5C%3D",
 	`"`: "%22",
 	`'`: "%27",
+	`$`: "%24",
 	` `: "%20",
 }
 
@@ -108,6 +111,7 @@ func (p *Parser) Parse(query string) (bson.D, error) {
 			tokenizer.NewSpec(`^(=sw=|=ew=)`, QuotedStringValueCompareOperatorType),
 			tokenizer.NewSpec(`^(=gt=|=ge=|=lt=|=le=)`, NumericValueCompareOperatorType),
 			tokenizer.NewSpec(`^(=in=|=out=)`, ArrayCompareOperatorType),
+			tokenizer.NewSpec(`^\$oid\([0-9a-fA-F]+\)`, OidLiteralType),
 			tokenizer.NewSpec(`(?i)^(true|false)`, BoolLiteralType),
 			tokenizer.NewSpec(`^(-|\+)?\d+(\.\d+)?`, NumberLiteralType),
 			tokenizer.NewSpec(`^("[^"]*"|'[^']*')`, QuotedStringLiteralType),
@@ -435,6 +439,7 @@ func (p *Parser) comparison() (*bson.E, error) {
 
 /*
  * <literal>
+ * : <oid_literal>
  * : <bool_literal>
  * | <quoted_string_literal>
  * | <numeric_literal>
@@ -442,6 +447,21 @@ func (p *Parser) comparison() (*bson.E, error) {
  */
 func (p *Parser) literal() (interface{}, error) {
 	switch p.lookahead.Type {
+	case OidLiteralType:
+		token, err := p.eat(OidLiteralType)
+		if err != nil {
+			return nil, err
+		}
+
+		oidHex := strings.TrimPrefix(token.Value, "$oid(")
+		oidHex = strings.TrimSuffix(oidHex, ")")
+
+		oid, err := primitive.ObjectIDFromHex(oidHex)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse $oid '%s': %w", oidHex, err)
+		}
+
+		return oid, nil
 	case BoolLiteralType:
 		token, err := p.eat(BoolLiteralType)
 		if err != nil {
