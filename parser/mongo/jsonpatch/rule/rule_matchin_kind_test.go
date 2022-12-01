@@ -55,15 +55,15 @@ func TestRuleMatchingKindEqualType(t *testing.T) {
 func TestRuleMatchingKindNotEqualType(t *testing.T) {
 	t.Parallel()
 
-	rule := MatchingKindRule{Instance: ""}
+	rule := MatchingKindRule{Instance: "", Path: "a"}
 	err := rule.Validate(operation.Spec{Value: 1})
 	require.Error(t, err)
-	require.Equal(t, "'root value' has invalid kind 'int', must be 'string'", err.Error())
+	require.Equal(t, "'a' has invalid kind 'int', must be 'string'", err.Error())
 
-	rule = MatchingKindRule{Instance: []string{}}
+	rule = MatchingKindRule{Instance: []string{}, Path: "a"}
 	err = rule.Validate(operation.Spec{Value: []int{1, 2, 3}})
 	require.Error(t, err)
-	require.Equal(t, "'root value item' has invalid kind 'int', must be 'string'", err.Error())
+	require.Equal(t, "'a(item)' has invalid kind 'int', must be 'string'", err.Error())
 
 	rule = MatchingKindRule{Instance: objectA{}}
 	err = rule.Validate(operation.Spec{Value: struct {

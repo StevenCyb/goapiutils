@@ -12,19 +12,22 @@ import (
 // unknown fields or to violate types.
 type MatchingKindRule struct {
 	Instance interface{}
+	Path     string
 }
 
 // UseValue instantiate new rule instance for field.
-func (m *MatchingKindRule) NewInstance(_ string, _ reflect.Kind, instance interface{}, _ string) (Rule, error) {
+func (m *MatchingKindRule) NewInstance(path string, _ reflect.Kind, instance interface{}, _ string) (Rule, error) {
 	return &MatchingKindRule{
 		Instance: instance,
+		Path:     path,
 	}, nil
 }
 
 // NewInheritInstance instantiate new rule instance based on given rule.
-func (m *MatchingKindRule) NewInheritInstance(_ string, _ reflect.Kind, instance interface{}) (Rule, error) {
+func (m *MatchingKindRule) NewInheritInstance(path string, _ reflect.Kind, instance interface{}) (Rule, error) {
 	return &MatchingKindRule{
 		Instance: instance,
+		Path:     path,
 	}, nil
 }
 
@@ -34,11 +37,11 @@ func (m MatchingKindRule) Validate(operationSpec operation.Spec) error {
 		return nil
 	}
 
-	return m.deepCompareType("root value", m.Instance, operationSpec.Value)
+	return m.deepCompareType(m.Path, m.Instance, operationSpec.Value)
 }
 
 // deepCompareType checks recursively one interface against a reference.
-func (m MatchingKindRule) deepCompareType(name string, reference, object interface{}) error {
+func (m MatchingKindRule) deepCompareType(path string, reference, object interface{}) error {
 	var (
 		err           error
 		referenceType = reflect.TypeOf(reference)
@@ -48,15 +51,15 @@ func (m MatchingKindRule) deepCompareType(name string, reference, object interfa
 	)
 
 	if referenceKind != objectKind {
-		return TypeMismatchError{name: name, actual: objectKind, expected: referenceKind}
+		return TypeMismatchError{name: path, actual: objectKind, expected: referenceKind}
 	}
 
 	switch objectType.Kind() { //nolint:exhaustive
 	case reflect.Ptr:
-		err = m.deepCompareType(name, reflect.Zero(referenceType.Elem()).Interface(),
+		err = m.deepCompareType(path, reflect.Zero(referenceType.Elem()).Interface(),
 			reflect.Zero(objectType.Elem()).Interface())
 	case reflect.Array, reflect.Map, reflect.Slice:
-		err = m.deepCompareIterable(name, referenceType, objectType)
+		err = m.deepCompareIterable(path, referenceType, objectType)
 	case reflect.Struct:
 		err = m.deepCompareStruct(referenceType, objectType)
 	}
@@ -64,7 +67,7 @@ func (m MatchingKindRule) deepCompareType(name string, reference, object interfa
 	return err
 }
 
-func (m MatchingKindRule) deepCompareIterable(name string, referenceType, objectType reflect.Type) error {
+func (m MatchingKindRule) deepCompareIterable(path string, referenceType, objectType reflect.Type) error {
 	var (
 		referenceZeroValue = reflect.Zero(referenceType.Elem())
 		objectZeroValue    = reflect.Zero(objectType.Elem())
@@ -73,12 +76,12 @@ func (m MatchingKindRule) deepCompareIterable(name string, referenceType, object
 	if objectType.Kind() == reflect.Map && referenceType.Kind() == reflect.Map {
 		if referenceType.Key().Kind() != objectType.Key().Kind() {
 			return TypeMismatchError{
-				name: name, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind(), forKey: true,
+				name: path, actual: objectType.Key().Kind(), expected: referenceType.Key().Kind(), forKey: true,
 			}
 		}
 	}
 
-	return m.deepCompareType(name+" item", referenceZeroValue.Interface(), objectZeroValue.Interface())
+	return m.deepCompareType(path+"(item)", referenceZeroValue.Interface(), objectZeroValue.Interface())
 }
 
 func (m MatchingKindRule) deepCompareStruct(referenceType, objectType reflect.Type) error {
