@@ -1,4 +1,4 @@
-//nolint:dupl
+//nolint:dupl,tagliatelle
 package validator
 
 import (
@@ -10,6 +10,7 @@ import (
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/rule"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type demoRule struct{}
@@ -78,7 +79,121 @@ func TestRegisterRule(t *testing.T) {
 	})
 }
 
-func TestUseReferenceWithSimpleTypes(t *testing.T) {
+func TestHandlingObjectID(t *testing.T) {
+	t.Parallel()
+
+	newID := primitive.NewObjectID()
+	newIDHex := newID.Hex()
+	newIDRaw := []int{99, 137, 14, 13, 185, 204, 14, 42, 43, 253, 38, 103}
+
+	validator, err := NewValidator(reflect.TypeOf(struct { //nolint:govet
+		ID    primitive.ObjectID  `bson:"_id"`
+		IDPtr *primitive.ObjectID `bson:"_id_ptr"`
+	}{}))
+	require.NoError(t, err)
+	require.NotNil(t, validator)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id",
+		Value:     newIDRaw,
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id",
+		Value:     newID,
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id",
+		Value:     newIDHex,
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id_ptr",
+		Value:     newID,
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id_ptr",
+		Value:     newIDHex,
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "_id_ptr",
+		Value:     newIDRaw,
+	})
+	require.NoError(t, err)
+}
+
+func TestHandlingObjectIDArray(t *testing.T) {
+	t.Parallel()
+
+	newID := primitive.NewObjectID()
+	newIDHex := newID.Hex()
+	newIDRaw := []int{99, 137, 14, 13, 185, 204, 14, 42, 43, 253, 38, 103}
+
+	validator, err := NewValidator(reflect.TypeOf(struct { //nolint:govet
+		Arr    []primitive.ObjectID  `bson:"arr"`
+		ArrPtr *[]primitive.ObjectID `bson:"arr_ptr"`
+	}{}))
+	require.NoError(t, err)
+	require.NotNil(t, validator)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr",
+		Value:     []interface{}{newID},
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr",
+		Value:     []interface{}{newIDHex},
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr",
+		Value:     []interface{}{newIDRaw},
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr_ptr",
+		Value:     []interface{}{newID},
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr_ptr",
+		Value:     []interface{}{newIDHex},
+	})
+	require.NoError(t, err)
+
+	err = validator.Validate(operation.Spec{
+		Operation: operation.ReplaceOperation,
+		Path:      "arr_ptr",
+		Value:     []interface{}{newIDRaw},
+	})
+	require.NoError(t, err)
+}
+
+func TestUseReferenceWithSimpleTypes(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
 	validator, err := NewValidator(reflect.TypeOf(struct{}{}))
@@ -99,23 +214,59 @@ func TestUseReferenceWithSimpleTypes(t *testing.T) {
 		} `bson:"h"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"b": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "b"}},
-		"c": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: 0, Path: "c"}},
-		"d": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []string{}, Path: "d"}},
-		"e": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []int{}, Path: "e"}},
-		"f": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]string{}, Path: "f"}},
-		"g": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]int{}, Path: "g"}},
-		"h": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A string
-			B string `bson:"b"`
-		}{}, Path: "h"}},
-		"h.b": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "h.b"}},
+		"b": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "b"},
+		},
+		"c": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Int},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: 0, Path: "c"},
+		},
+		"d": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: []string{}, Path: "d"},
+		},
+		"e": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: []int{}, Path: "e"},
+		},
+		"f": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: map[string]string{}, Path: "f"},
+		},
+		"g": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: map[string]int{}, Path: "g"},
+		},
+		"h": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A string
+				B string `bson:"b"`
+			}{}, Path: "h"},
+		},
+		"h.b": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "h.b"},
+		},
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
-		"d.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "d.*"}},
-		"e.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: 0, Path: "e.*"}},
-		"f.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "f.*"}},
-		"g.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: 0, Path: "g.*"}},
+		"d.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "d.*"},
+		},
+		"e.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Int},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: 0, Path: "e.*"},
+		},
+		"f.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "f.*"},
+		},
+		"g.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Int},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: 0, Path: "g.*"},
+		},
 	}
 
 	require.NoError(t, err)
@@ -138,15 +289,24 @@ func TestUseReferenceComplexStruct(t *testing.T) {
 		} `bson:"a"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A struct {
+		"a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A struct {
+					B string `bson:"b"`
+				} `bson:"a"`
+			}{}, Path: "a"},
+		},
+		"a.a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
 				B string `bson:"b"`
-			} `bson:"a"`
-		}{}, Path: "a"}},
-		"a.a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			B string `bson:"b"`
-		}{}, Path: "a.a"}},
-		"a.a.b": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.a.b"}},
+			}{}, Path: "a.a"},
+		},
+		"a.a.b": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.a.b"},
+		},
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{}
 
@@ -168,15 +328,24 @@ func TestUseReferenceComplexArray(t *testing.T) {
 		} `bson:"b"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"b": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []struct {
-			A string `bson:"a"`
-		}{}, Path: "b"}},
+		"b": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []struct {
+				A string `bson:"a"`
+			}{}, Path: "b"},
+		},
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
-		"b.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A string `bson:"a"`
-		}{}, Path: "b.*"}},
-		"b.*.a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "b.*.a"}},
+		"b.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A string `bson:"a"`
+			}{}, Path: "b.*"},
+		},
+		"b.*.a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "b.*.a"},
+		},
 	}
 
 	require.NoError(t, err)
@@ -197,15 +366,24 @@ func TestUseReferenceComplexMap(t *testing.T) {
 		} `bson:"c"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"c": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]struct {
-			A string `bson:"a"`
-		}{}, Path: "c"}},
+		"c": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]struct {
+				A string `bson:"a"`
+			}{}, Path: "c"},
+		},
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
-		"c.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A string `bson:"a"`
-		}{}, Path: "c.*"}},
-		"c.*.a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "c.*.a"}},
+		"c.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A string `bson:"a"`
+			}{}, Path: "c.*"},
+		},
+		"c.*.a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "c.*.a"},
+		},
 	}
 
 	require.NoError(t, err)
@@ -213,7 +391,7 @@ func TestUseReferenceComplexMap(t *testing.T) {
 	require.Equal(t, expectedWildcardRules, validator.wildcardRules)
 }
 
-func TestUseReferenceComplexNested(t *testing.T) {
+func TestUseReferenceComplexNested(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
 	validator, err := NewValidator(reflect.TypeOf(struct{}{}))
@@ -229,28 +407,52 @@ func TestUseReferenceComplexNested(t *testing.T) {
 		} `bson:"e"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"d": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string][]struct {
-			A string `bson:"a"`
-		}{}, Path: "d"}},
-		"e": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []map[string]struct {
-			A string `bson:"a"`
-		}{}, Path: "e"}},
+		"d": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string][]struct {
+				A string `bson:"a"`
+			}{}, Path: "d"},
+		},
+		"e": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []map[string]struct {
+				A string `bson:"a"`
+			}{}, Path: "e"},
+		},
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
-		"d.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []struct {
-			A string `bson:"a"`
-		}{}, Path: "d.*"}},
-		"d.*.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A string `bson:"a"`
-		}{}, Path: "d.*.*"}},
-		"d.*.*.a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "d.*.*.a"}},
-		"e.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]struct {
-			A string `bson:"a"`
-		}{}, Path: "e.*"}},
-		"e.*.*": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
-			A string `bson:"a"`
-		}{}, Path: "e.*.*"}},
-		"e.*.*.a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "e.*.*.a"}},
+		"d.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []struct {
+				A string `bson:"a"`
+			}{}, Path: "d.*"},
+		},
+		"d.*.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A string `bson:"a"`
+			}{}, Path: "d.*.*"},
+		},
+		"d.*.*.a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "d.*.*.a"},
+		},
+		"e.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]struct {
+				A string `bson:"a"`
+			}{}, Path: "e.*"},
+		},
+		"e.*.*": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
+				A string `bson:"a"`
+			}{}, Path: "e.*.*"},
+		},
+		"e.*.*.a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "e.*.*.a"},
+		},
 	}
 
 	require.NoError(t, err)
@@ -258,7 +460,7 @@ func TestUseReferenceComplexNested(t *testing.T) {
 	require.Equal(t, expectedWildcardRules, validator.wildcardRules)
 }
 
-func TestUseReferenceWithSimpleRules(t *testing.T) {
+func TestUseReferenceWithSimpleRules(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
 	validator, err := NewValidator(reflect.TypeOf(struct{}{}))
@@ -275,25 +477,42 @@ func TestUseReferenceWithSimpleRules(t *testing.T) {
 		G string `bson:"g" jp_op_disallowed:"add,remove"`
 	}{}))
 	expectedRule := map[operation.Path]map[string]rule.Rule{
-		"a": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a"}},
-		"b": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "b"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
+		"a": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a"},
 		},
-		"c": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "c"}, "jp_min": &rule.MinRule{Min: 3}},
-		"d": {"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "d"}, "jp_max": &rule.MaxRule{Max: 3}},
+		"b": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "b"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+		},
+		"c": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "c"},
+			"jp_min":                                &rule.MinRule{Min: 3},
+		},
+		"d": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "d"},
+			"jp_max":                                &rule.MaxRule{Max: 3},
+		},
 		"e": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "e"},
-			"jp_expression":            &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "e"},
+			"jp_expression": &rule.ExpressionRule{
+				Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`),
+			},
 		},
 		"f": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "f"},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "f"},
 			"jp_op_allowed": &rule.AllowedOperationsRule{
 				Operations: []operation.Operation{operation.AddOperation, operation.RemoveOperation},
 			},
 		},
 		"g": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "g"},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "g"},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{
 				Operations: []operation.Operation{operation.AddOperation, operation.RemoveOperation},
 			},
@@ -331,30 +550,34 @@ func TestUseReferenceWithHeredityStruct(t *testing.T) { //nolint:funlen
 
 	expectedRule := map[operation.Path]map[string]rule.Rule{
 		"a": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.do_inherit": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.do_inherit"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.do_inherit"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.do_overwrite": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.do_overwrite"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: false},
-			"jp_min":                   &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.do_overwrite"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: false},
+			"jp_min":                                &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\d+$`, Regex: *regexp.MustCompile(`^\d+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.MoveOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.ReplaceOperation}},
 		},
 		"a.nested": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
 			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
 				DoInherit string `bson:"do_inherit"`
 				Nested    struct {
@@ -368,14 +591,16 @@ func TestUseReferenceWithHeredityStruct(t *testing.T) { //nolint:funlen
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.nested.do_inherit": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.nested.do_inherit"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.nested.do_inherit"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.nested.nested": {
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
 			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: struct {
 				DoInherit string `bson:"do_inherit"`
 			}{}, Path: "a.nested.nested"},
@@ -386,9 +611,10 @@ func TestUseReferenceWithHeredityStruct(t *testing.T) { //nolint:funlen
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.nested.nested.do_inherit": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.nested.nested.do_inherit"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.nested.nested.do_inherit"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
@@ -419,9 +645,10 @@ func TestUseReferenceWithHeredityArray(t *testing.T) {
 
 	expectedRule := map[operation.Path]map[string]rule.Rule{
 		"a": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: []demoStruct{}, Path: "a"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Slice},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: []demoStruct{}, Path: "a"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
@@ -429,25 +656,28 @@ func TestUseReferenceWithHeredityArray(t *testing.T) {
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
 		"a.*": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a.*"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a.*"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.*.do_inherit": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.*.do_inherit"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.*.do_inherit"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.*.do_overwrite": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.*.do_overwrite"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: false},
-			"jp_min":                   &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.*.do_overwrite"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: false},
+			"jp_min":                                &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\d+$`, Regex: *regexp.MustCompile(`^\d+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.MoveOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.ReplaceOperation}},
@@ -477,9 +707,10 @@ func TestUseReferenceWithHeredityMap(t *testing.T) {
 
 	expectedRule := map[operation.Path]map[string]rule.Rule{
 		"a": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: map[string]demoStruct{}, Path: "a"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Map},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: map[string]demoStruct{}, Path: "a"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
@@ -487,25 +718,28 @@ func TestUseReferenceWithHeredityMap(t *testing.T) {
 	}
 	expectedWildcardRules := map[operation.Path]map[string]rule.Rule{
 		"a.*": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a.*"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.Struct},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: demoStruct{}, Path: "a.*"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.*.do_inherit": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.*.do_inherit"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: true},
-			"jp_min":                   &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.*.do_inherit"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: true},
+			"jp_min":                                &rule.MinRule{Min: 3}, "jp_max": &rule.MaxRule{Max: 3},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\w+$`, Regex: *regexp.MustCompile(`^\w+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.AddOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.RemoveOperation}},
 		},
 		"a.*.do_overwrite": {
-			"jp_general_matching_kind": &rule.MatchingKindRule{Instance: "", Path: "a.*.do_overwrite"},
-			"jp_disallow":              &rule.DisallowRule{Disallow: false},
-			"jp_min":                   &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{Kind: reflect.String},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{Instance: "", Path: "a.*.do_overwrite"},
+			"jp_disallow":                           &rule.DisallowRule{Disallow: false},
+			"jp_min":                                &rule.MinRule{Min: 2}, "jp_max": &rule.MaxRule{Max: 2},
 			"jp_expression":    &rule.ExpressionRule{Expression: `^\d+$`, Regex: *regexp.MustCompile(`^\d+$`)},
 			"jp_op_allowed":    &rule.AllowedOperationsRule{Operations: []operation.Operation{operation.MoveOperation}},
 			"jp_op_disallowed": &rule.DisallowedOperationsRule{Operations: []operation.Operation{operation.ReplaceOperation}},
@@ -528,14 +762,14 @@ func TestValidateTypecheckRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "new"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "new"})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidType_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 123})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 123})
 		require.Error(t, err)
 		require.Equal(t, "operation no allowed: 'a' has invalid kind 'int', must be 'string'", err.Error())
 	})
@@ -564,35 +798,35 @@ func TestValidatePath(t *testing.T) { //nolint:funlen
 	t.Run("ValidRootPath_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 1})
 		require.NoError(t, err)
 	})
 
 	t.Run("ValidNestedPath_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "b.c", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "b.c", Value: 1})
 		require.NoError(t, err)
 	})
 
 	t.Run("ValidNestedArrayPath_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "d.0.e", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "d.0.e", Value: 1})
 		require.NoError(t, err)
 	})
 
 	t.Run("ValidNestedMapPath_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "f.0.g", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "f.0.g", Value: 1})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidRootPath_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "aa", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "aa", Value: 1})
 		require.Error(t, err)
 		require.Equal(t, "defined path 'aa' is unknown", err.Error())
 	})
@@ -600,7 +834,7 @@ func TestValidatePath(t *testing.T) { //nolint:funlen
 	t.Run("InvalidNestedPath_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "x.f", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "x.f", Value: 1})
 		require.Error(t, err)
 		require.Equal(t, "defined path 'x.f' is unknown", err.Error())
 	})
@@ -608,7 +842,7 @@ func TestValidatePath(t *testing.T) { //nolint:funlen
 	t.Run("InvalidNestedPath_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "d.0.c", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "d.0.c", Value: 1})
 		require.Error(t, err)
 		require.Equal(t, "defined path 'd.0.c' is unknown", err.Error())
 	})
@@ -616,7 +850,7 @@ func TestValidatePath(t *testing.T) { //nolint:funlen
 	t.Run("InvalidNestedPath_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "f.0.c", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "f.0.c", Value: 1})
 		require.Error(t, err)
 		require.Equal(t, "defined path 'f.0.c' is unknown", err.Error())
 	})
@@ -635,14 +869,14 @@ func TestValidateDisallowRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "new"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "new"})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidType_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "b", Value: 123})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "b", Value: 123})
 		require.Error(t, err)
 	})
 }
@@ -659,14 +893,14 @@ func TestValidateMinRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 3})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 3})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidType_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 1})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 1})
 		require.Error(t, err)
 		require.Equal(t, "operation no allowed: value is less then specified: '1.000000' < '3.000000'", err.Error())
 	})
@@ -684,14 +918,14 @@ func TestValidateMaxRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 3})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 3})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidType_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: 123})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: 123})
 		require.Error(t, err)
 		require.Equal(t, "operation no allowed: value is greater then specified: '123.000000' > '3.000000'", err.Error())
 	})
@@ -709,14 +943,14 @@ func TestValidateExpressionRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "abc"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "abc"})
 		require.NoError(t, err)
 	})
 
 	t.Run("InvalidType_Fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "123"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "123"})
 		require.Error(t, err)
 		require.Equal(t, "operation no allowed: expression '^[a-z]+$' not match 123", err.Error())
 	})
@@ -726,7 +960,7 @@ func TestValidateAllowedOperationsRule(t *testing.T) {
 	t.Parallel()
 
 	validator, err := NewValidator(reflect.TypeOf(struct {
-		A string `bson:"a" jp_op_allowed:"add"`
+		A string `bson:"a" jp_op_allowed:"replace"`
 	}{}))
 	require.NoError(t, err)
 	require.NotNil(t, validator)
@@ -734,7 +968,7 @@ func TestValidateAllowedOperationsRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "abc"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "abc"})
 		require.NoError(t, err)
 	})
 
@@ -759,7 +993,7 @@ func TestValidateDisallowedOperationsRule(t *testing.T) {
 	t.Run("ValidType_Success", func(t *testing.T) {
 		t.Parallel()
 
-		err := validator.Validate(operation.Spec{Operation: operation.AddOperation, Path: "a", Value: "abc"})
+		err := validator.Validate(operation.Spec{Operation: operation.ReplaceOperation, Path: "a", Value: "abc"})
 		require.NoError(t, err)
 	})
 

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/forcecast"
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/operation"
 	"github.com/StevenCyb/goapiutils/parser/mongo/jsonpatch/rule"
 )
@@ -15,10 +16,12 @@ const (
 
 // Validator interprets reference to validate JSON patch operations.
 type Validator struct {
-	knownTagRules map[string]rule.Rule
-	rules         map[operation.Path]map[string]rule.Rule
-	wildcardRules map[operation.Path]map[string]rule.Rule
-	generalRules  map[string]rule.Rule
+	knownForceCast map[string]forcecast.ForceCast
+	forceCast      map[operation.Path]forcecast.ForceCast
+	knownTagRules  map[string]rule.Rule
+	generalRules   map[string]rule.Rule
+	rules          map[operation.Path]map[string]rule.Rule
+	wildcardRules  map[operation.Path]map[string]rule.Rule
 }
 
 // RegisterRule register addition rule for specific key (must have prefix `jp_`).
@@ -46,6 +49,15 @@ func (v *Validator) RegisterRule(key string, rule rule.Rule) error {
 
 // Validate a given JSON patch operations again rules.
 func (v Validator) Validate(operationSpec operation.Spec) error {
+	if forceCast, match := v.forceCast[operationSpec.Path]; match {
+		var err error
+
+		operationSpec.Value, err = forceCast.Cast(operationSpec.Value)
+		if err != nil {
+			return fmt.Errorf("force cast failed: %w", err)
+		}
+	}
+
 	if rules, match := v.rules[operationSpec.Path]; match {
 		for _, rule := range rules {
 			err := rule.Validate(operationSpec)
@@ -111,17 +123,25 @@ func (v *Validator) parseReferenceIterable(
 		err       error
 	)
 
-	switch kind { //nolint:exhaustive
-	case reflect.Ptr:
-		zeroValue = reflect.Zero(valueType.Elem())
+	abstractType := valueType.String()
+	if fc, exists := v.knownForceCast[abstractType]; exists {
+		v.forceCast[operation.Path(path+"*")] = fc
+		zeroValue = reflect.ValueOf(fc.ZeroValue())
+	} else {
+		switch kind { //nolint:exhaustive
+		case reflect.Ptr:
+			zeroValue = reflect.Zero(valueType.Elem())
+		case reflect.Array:
+			zeroValue = reflect.New(reflect.ArrayOf(int(valueType.Size()), reflect.TypeOf(valueType))).Elem()
+		case reflect.Slice:
+			zeroValue = reflect.MakeSlice(valueType, 0, 0)
+		case reflect.Map:
+			zeroValue = reflect.MakeMap(valueType)
+		default:
+			zeroValue = reflect.Zero(valueType)
+		}
+
 		kind = zeroValue.Kind()
-	case reflect.Array, reflect.Slice:
-		zeroValue = reflect.MakeSlice(valueType, 0, 0)
-	case reflect.Map:
-		zeroValue = reflect.MakeMap(valueType)
-		kind = zeroValue.Kind()
-	default:
-		zeroValue = reflect.Zero(valueType)
 	}
 
 	if err = v.addRule(path+"*", kind, "", zeroValue.Interface(), &inheritedRules); err != nil {
@@ -151,17 +171,31 @@ func (v *Validator) parseReferenceStruct(
 			continue
 		}
 
-		switch kind { //nolint:exhaustive
-		case reflect.Ptr:
-			zeroValue = reflect.Zero(field.Type.Elem())
+		abstractType := ""
+		if kind == reflect.Ptr {
+			abstractType = field.Type.Elem().String()
+		} else {
+			abstractType = field.Type.String()
+		}
+
+		if fc, exists := v.knownForceCast[abstractType]; exists {
+			v.forceCast[operation.Path(path+bsonName)] = fc
+			zeroValue = reflect.ValueOf(fc.ZeroValue())
+		} else {
+			switch kind { //nolint:exhaustive
+			case reflect.Ptr:
+				zeroValue = reflect.Zero(field.Type.Elem())
+			case reflect.Array:
+				zeroValue = reflect.New(reflect.ArrayOf(int(field.Type.Size()), reflect.TypeOf(field.Type))).Elem()
+			case reflect.Slice:
+				zeroValue = reflect.MakeSlice(field.Type, 0, 0)
+			case reflect.Map:
+				zeroValue = reflect.MakeMap(field.Type)
+			default:
+				zeroValue = reflect.Zero(field.Type)
+			}
+
 			kind = zeroValue.Kind()
-		case reflect.Array, reflect.Slice:
-			zeroValue = reflect.MakeSlice(field.Type, 0, 0)
-		case reflect.Map:
-			zeroValue = reflect.MakeMap(field.Type)
-			kind = zeroValue.Kind()
-		default:
-			zeroValue = reflect.Zero(field.Type)
 		}
 
 		if err = v.addRule(path+bsonName, kind, field.Tag, zeroValue.Interface(), &inheritedRules); err != nil {
@@ -276,8 +310,14 @@ func (v *Validator) composeRulesFromTags(
 // NewValidator create a new instance of validator using given reference.
 func NewValidator(referenceType reflect.Type) (*Validator, error) {
 	validator := Validator{
+		knownForceCast: map[string]forcecast.ForceCast{
+			"primitive.ObjectID":   forcecast.ObjectIDCast{},
+			"[]primitive.ObjectID": forcecast.ObjectIDArrayCast{},
+		},
+		forceCast: map[operation.Path]forcecast.ForceCast{},
 		generalRules: map[string]rule.Rule{
-			"jp_general_matching_kind": &rule.MatchingKindRule{},
+			"jp_general_matching_operation_to_kind": &rule.MatchingOperationToKindRule{},
+			"jp_general_matching_kind":              &rule.MatchingKindRule{},
 		},
 		knownTagRules: map[string]rule.Rule{
 			"jp_disallow":      &rule.DisallowRule{},
