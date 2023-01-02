@@ -1,4 +1,6 @@
-# GoHttpUtils
+# Due to some changes the RSQL- and Sort-Parser as well as the JSON patch implementation will be moved [here](https://github.com/StevenCyb/go-mongo-tools)
+
+## GoHttpUtils
 
 [![GitHub release badge](https://badgen.net/github/release/StevenCyb/goapiutils/latest?label=Latest&logo=GitHub)](https://github.com/StevenCyb/goapiutils/releases/latest)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/StevenCyb/goapiutils/ci-test?label=Tests&logo=GitHub)
@@ -6,7 +8,7 @@
 
 This is a collection of query parsers and extractors that can be used for for API's.
 
-## Query parser
+### Query parser
 - MongoDB
   - [RSQL parser for MongoDB find queries](parser/mongo/rsql/README.md)
   - [Parser for MongoDB sort options](parser/mongo/sort/README.md)
@@ -14,7 +16,7 @@ This is a collection of query parsers and extractors that can be used for for AP
 - Object
   - [Parser for subset query](parser/object/subset/README.md)
 
-## Extractor
+### Extractor
 - HTTP-Request Parameter
   - [Extract query value](extractor/http/request/parameter/README.md#query-parameter)
   - [Extract patch value](extractor/http/request/parameter/README.md#path-parameter)
